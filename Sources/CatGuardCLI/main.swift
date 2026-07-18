@@ -1,6 +1,7 @@
 @preconcurrency import AVFoundation
 import CatGuardCore
 import CoreMedia
+import CoreML
 import Foundation
 @preconcurrency import Vision
 
@@ -68,6 +69,7 @@ private enum CLIError: LocalizedError {
     case cannotAddCameraInput
     case cannotAddVideoOutput
     case timedOut
+    case visionTimedOut
 
     var errorDescription: String? {
         switch self {
@@ -79,6 +81,7 @@ private enum CLIError: LocalizedError {
         case .cannotAddCameraInput: "the selected camera could not be attached to the capture session"
         case .cannotAddVideoOutput: "the video output could not be attached to the capture session"
         case .timedOut: "the camera did not return a frame before the timeout"
+        case .visionTimedOut: "human detection did not finish before the timeout"
         }
     }
 }
@@ -224,15 +227,64 @@ private final class LockedValue<Value>: @unchecked Sendable {
     }
 }
 
-private enum HumanDetector {
-    static func confidence(in pixelBuffer: CVPixelBuffer) throws -> Float {
-        let request = VNDetectHumanRectanglesRequest()
+private final class HumanDetectionTask: @unchecked Sendable {
+    private let request: VNDetectHumanRectanglesRequest
+    private let handler: VNImageRequestHandler
+    private let result = LockedValue<Result<Float, Error>?>(nil)
+    let completed = DispatchSemaphore(value: 0)
+
+    init(pixelBuffer: CVPixelBuffer) throws {
+        request = VNDetectHumanRectanglesRequest()
         request.upperBodyOnly = true
+        handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
 
-        let handler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .up)
-        try handler.perform([request])
+        for (stage, devices) in try request.supportedComputeStageDevices {
+            guard let cpu = devices.first(where: { device in
+                if case .cpu = device { return true }
+                return false
+            }) else { continue }
 
-        return request.results?.map(\.confidence).max() ?? 0
+            request.setComputeDevice(cpu, for: stage)
+        }
+    }
+
+    func run() {
+        defer { completed.signal() }
+
+        do {
+            try handler.perform([request])
+            result.set(.success(request.results?.map(\.confidence).max() ?? 0))
+        } catch {
+            result.set(.failure(error))
+        }
+    }
+
+    func cancel() {
+        request.cancel()
+    }
+
+    func confidence() throws -> Float {
+        guard let result = result.get() else { throw CLIError.visionTimedOut }
+        return try result.get()
+    }
+}
+
+private enum HumanDetector {
+    static func confidence(
+        in pixelBuffer: CVPixelBuffer,
+        timeout: TimeInterval = 15
+    ) throws -> Float {
+        let task = try HumanDetectionTask(pixelBuffer: pixelBuffer)
+        DispatchQueue.global(qos: .utility).async {
+            task.run()
+        }
+
+        guard task.completed.wait(timeout: .now() + timeout) == .success else {
+            task.cancel()
+            throw CLIError.visionTimedOut
+        }
+
+        return try task.confidence()
     }
 }
 
