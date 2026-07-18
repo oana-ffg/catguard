@@ -64,6 +64,8 @@ documented lifetime and fail-safe behavior, not persisted state.
 - Native Swift package using AVFoundation and Vision.
 - One-shot external-webcam sample at 640×480; no frame persistence.
 - CLI reports `PRESENT` or `UNCERTAIN` plus confidence and camera name.
+- Native debug monitor shows the exact in-memory sampled frame, current detection
+  result, confidence, and the latest 10 metadata-only results.
 - Pure, tested state machine captures immediate presence, delayed/repeated
   absence, and camera-failure recovery semantics.
 - No device control, background daemon, or persistent state.
