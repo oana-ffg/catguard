@@ -376,6 +376,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CATGUARD_APP_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
+				CATGUARD_HELPER_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard.Helper\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -461,6 +463,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				CATGUARD_APP_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
+				CATGUARD_HELPER_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard.Helper\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";

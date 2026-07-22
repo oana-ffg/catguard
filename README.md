@@ -14,6 +14,18 @@ the Mac or blocking trusted Computer Use automation.
 > deliberate physical access, and it is not a replacement for the macOS lock
 > screen. The rescue phrase is a convenience fallback, not a security password.
 
+> [!CAUTION]
+> **Do not blindly install someone else's CatGuard binary.** CatGuard is
+> intentionally invasive: it asks for system-wide Input Monitoring permission
+> and installs an administrator-authorized helper that runs as root and receives
+> raw physical keyboard events before other apps do. A malicious build could act
+> as a keylogger or abuse root access. This repository's implementation does not
+> store or transmit typed keys—the helper keeps only event counts and the
+> in-memory rescue-phrase matcher—but you should verify that claim rather than
+> trust it. The safest option is to ask Codex to inspect this design and build a
+> fresh, locally signed version from source for your Mac. The prompt below is
+> provided specifically for that purpose.
+
 The idea came from a real problem: an unlocked Mac is useful for overnight AI
 tasks, but an unattended keyboard is irresistible to cats. Locking the Mac stops
 the cats, but it also changes how local automation can interact with the GUI.
@@ -23,8 +35,9 @@ Computer Use events alone.
 ## What it does
 
 - Follows a macOS Focus Filter, even while the app stays in the background.
-- Shows a paw in the menu bar: green when physical input is active, red when
-  fully guarded, and orange when protection is unavailable.
+- Shows an unmistakable state icon in the menu bar: a green paw when input is
+  active, a red closed lock when fully guarded, a green open lock while
+  bypassed, and an orange warning when protection is unavailable.
 - Exclusively opens external physical keyboard HID collections through a small,
   authenticated privileged helper.
 - Blocks physical pointer clicks, drags, and scrolling with a Core Graphics
@@ -50,25 +63,38 @@ their primary bypass until layout-aware phrase capture is implemented.
 
 ## Current status
 
-CatGuard is pre-release while its signed privileged-helper package is validated
-on current macOS. The pointer architecture, Computer Use boundary, circle bypass,
+CatGuard is pre-release while its privileged-helper package is validated on
+current macOS. The pointer architecture, Computer Use boundary, circle bypass,
 and HID seizure have been exercised on real hardware; see
 [the experiment log](docs/HID-EXPERIMENTS.md) for successes, failures, and
 measured release timing.
 
-When the first signed and notarized build is published, it will be available from
-[GitHub Releases](https://github.com/oana-ffg/catguard/releases/latest).
+**This repository does not currently publish a prebuilt app.** Its maintainer's
+free Apple Personal Team cannot issue the Developer ID certificate required for
+a properly signed and notarized public macOS release. The local certificate used
+for development is trusted only by its owner's Mac and must not be distributed.
+If a Developer ID release is added later, a signature will prove which developer
+produced it—not that invasive software is safe. Building your own inspected copy
+will remain the recommended path.
 
-## Setup
+## Local setup
 
-1. Move `CatGuard.app` to `/Applications` and open it.
-2. Grant Input Monitoring when macOS asks. This lets CatGuard distinguish and
+1. Review the source and follow **Build from source** below. Do not obtain a
+   CatGuard binary from an unofficial download.
+2. Move your locally built `CatGuard.app` to `/Applications` and open it.
+3. Grant Input Monitoring when macOS asks. This lets CatGuard distinguish and
    suppress physical pointer events.
-3. Open CatGuard Settings and choose **Install or Update Keyboard Helper**. The
+4. Open CatGuard Settings and choose **Install or Update Keyboard Helper**. The
    one-time administrator prompt installs the narrowly scoped root helper.
-4. In **System Settings → Focus**, edit the Focus you want to use, choose
+5. Return to **System Settings → Privacy & Security → Input Monitoring**, click
+   **+**, add
+   `/Library/PrivilegedHelperTools/com.oanaffg.CatGuard.Helper`, and enable it.
+   macOS treats the app and its root helper as separate input-monitoring clients.
+   This is the consequential permission that lets the helper receive raw
+   physical keyboard events system-wide.
+6. In **System Settings → Focus**, edit the Focus you want to use, choose
    **Focus Filters**, add CatGuard, and enable **Guard against cat input**.
-5. Optionally enable **Start CatGuard at login**, customize the rescue phrase,
+7. Optionally enable **Start CatGuard at login**, customize the rescue phrase,
    or disable circle bypass.
 
 The Focus is still enabled and disabled from the Mac, iPhone, or Apple Watch in
@@ -102,6 +128,26 @@ Select your own Apple development team before building. The privileged helper,
 app, embedded signing requirements, and bundle identifiers must be signed as one
 trusted set. A distributable build additionally requires Developer ID signing
 and Apple notarization.
+
+For a stable build used only on your own Mac, no paid membership is required.
+The local build script creates a ten-year, Keychain-backed certificate trusted
+only on that Mac and binds the app and helper to its exact fingerprint:
+
+```sh
+./scripts/build-local.sh
+open .build/xcode-local/Build/Products/Release/CatGuard.app
+```
+
+This local identity is intentionally unsuitable for distributing a binary to
+other people. Public releases should use Developer ID signing and notarization.
+
+macOS may ask for Input Monitoring again after replacing a locally built app or
+helper with a new executable. CatGuard fails open while permission is missing:
+the menu-bar icon becomes the orange warning symbol and physical input remains
+available. Re-enable both `CatGuard.app` and `com.oanaffg.CatGuard.Helper` in
+**System Settings → Privacy & Security → Input Monitoring**, then relaunch the
+app if macOS requests it. Ordinary users would not encounter local rebuilds;
+this note is primarily for source-build development.
 
 The reusable state machines and research utilities use Swift Package Manager:
 
@@ -139,9 +185,12 @@ See [Architecture](docs/ARCHITECTURE.md),
 
 ## Ask Codex to build your variant
 
-The implementation is open source, but hardware, desired recovery gestures, and
-macOS versions differ. You can also give Codex this prompt and have it inspect
-and validate a version for your own setup:
+**This is the recommended installation path.** The implementation is open
+source, but hardware, desired recovery gestures, and macOS versions differ—and
+software with global input access plus a root helper deserves more scrutiny than
+an ordinary menu-bar app. Give Codex this prompt so it can inspect the design,
+explain every privileged capability, and build and validate a version for your
+own setup:
 
 ```text
 Build me a native Swift macOS menu-bar app inspired by CatGuard. Its threat model
@@ -158,7 +207,11 @@ key-down and pointer-click counts separately, putting bypass count first when it
 is nonzero. Never show “guarded” unless both keyboard and pointer protection are
 confirmed. Include hard-timed experiments, unit tests, clean documentation,
 signed-helper validation, and an emergency recovery path before enabling it on
-my real keyboard.
+my real keyboard. Treat global input access and the root helper as hostile trust
+boundaries: audit that no keystrokes or other private input are persisted or
+transmitted, explain the exact data flow to me, remove every unnecessary
+privilege and endpoint, and sign the app/helper pair with an identity controlled
+by me rather than trusting a downloaded binary.
 ```
 
 Do not blindly copy CatGuard's team ID or bundle identifiers. Ask Codex to use

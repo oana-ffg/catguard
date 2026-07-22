@@ -44,6 +44,11 @@ network data, or pointer input. It exposes no general-purpose privileged API.
 The app and helper authenticate each other with code-signing requirements over
 XPC. The helper interface contains only `arm`, `disarm`, and `heartbeat`; replies
 carry success/error state, drained key-down counts, and the rescue-trigger bit.
+The requirements are injected into both Info plists at build time. Apple-signed
+builds bind to the development team; local-only builds bind to the exact
+self-signed certificate fingerprint. The same requirements are used by
+`SMJobBless` and the live XPC connections, so the two trust boundaries cannot
+silently drift apart.
 
 ## State and fail-open behavior
 
@@ -65,6 +70,11 @@ releases the HID collections.
 Normal application termination waits for the helper's disarm reply. XPC calls
 have a three-second timeout; abrupt termination and an unresponsive client are
 covered independently by the helper's three-second watchdog.
+
+If macOS denies the helper's Input Monitoring access, the helper fails open and
+exits after returning the error. Launchd starts a fresh process on the app's
+rate-limited retry, allowing a newly granted TCC permission to take effect
+without requiring a reboot.
 
 ## Why the helper uses SMJobBless
 

@@ -20,8 +20,6 @@ final class StatusItemController: NSObject {
         super.init()
 
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "pawprint.fill", accessibilityDescription: "CatGuard")
-            button.image?.isTemplate = true
             button.target = self
             button.action = #selector(showMenu)
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -90,14 +88,33 @@ final class StatusItemController: NSObject {
 
     private func updateAppearance(for state: ProtectionState) {
         guard let button = statusItem.button else { return }
+        let symbolName: String
+        let tintColor: NSColor
         switch state {
         case .guarded:
-            button.contentTintColor = .systemRed
-        case .inputActive, .bypassed:
-            button.contentTintColor = .systemGreen
+            symbolName = "lock.fill"
+            tintColor = .systemRed
+        case .inputActive:
+            symbolName = "pawprint.fill"
+            tintColor = .systemGreen
+        case .bypassed:
+            symbolName = "lock.open.fill"
+            tintColor = .systemGreen
         case .unavailable:
-            button.contentTintColor = .systemOrange
+            symbolName = "exclamationmark.triangle.fill"
+            tintColor = .systemOrange
         }
+
+        let sizeConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
+        let colorConfiguration = NSImage.SymbolConfiguration(paletteColors: [tintColor])
+        let configuration = sizeConfiguration.applying(colorConfiguration)
+        let image = NSImage(
+            systemSymbolName: symbolName,
+            accessibilityDescription: "CatGuard: \(state.label)"
+        )?.withSymbolConfiguration(configuration)
+        image?.isTemplate = false
+        button.image = image
+        button.contentTintColor = nil
         button.toolTip = state.label
         button.setAccessibilityLabel("CatGuard: \(state.label)")
     }

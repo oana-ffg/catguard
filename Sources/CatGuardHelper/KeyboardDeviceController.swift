@@ -6,16 +6,33 @@ final class KeyboardDeviceController: @unchecked Sendable {
     enum Error: LocalizedError {
         case managerOpenFailed(IOReturn)
         case noExternalKeyboard
-        case partialSeizure(String)
+        case deviceOpenFailed(product: String, result: IOReturn)
+
+        var requiresFreshProcessForInputMonitoring: Bool {
+            switch self {
+            case .managerOpenFailed(let result), .deviceOpenFailed(_, let result):
+                result == kIOReturnNotPermitted
+            case .noExternalKeyboard:
+                false
+            }
+        }
 
         var errorDescription: String? {
             switch self {
             case .managerOpenFailed(let result):
-                "Could not open the HID manager (IOReturn \(result))."
+                if result == kIOReturnNotPermitted {
+                    "Input Monitoring is not enabled for the CatGuard keyboard helper."
+                } else {
+                    "Could not open the HID manager (IOReturn \(result))."
+                }
             case .noExternalKeyboard:
                 "No external physical keyboard was found."
-            case .partialSeizure(let product):
-                "Could not guard every input collection for \(product); all input was restored."
+            case .deviceOpenFailed(let product, let result):
+                if result == kIOReturnNotPermitted {
+                    "Input Monitoring is not enabled for the CatGuard keyboard helper."
+                } else {
+                    "Could not guard every input collection for \(product) (IOReturn \(result)); all input was restored."
+                }
             }
         }
     }
@@ -80,7 +97,7 @@ final class KeyboardDeviceController: @unchecked Sendable {
             guard result == kIOReturnSuccess else {
                 let product = device.product
                 disarm()
-                throw Error.partialSeizure(product)
+                throw Error.deviceOpenFailed(product: product, result: result)
             }
 
             let context = Unmanaged.passUnretained(self).toOpaque()
@@ -91,7 +108,10 @@ final class KeyboardDeviceController: @unchecked Sendable {
 
         guard seizedDevices.contains(where: \.isPrimaryKeyboard) else {
             disarm()
-            throw Error.partialSeizure("external keyboard")
+            throw Error.deviceOpenFailed(
+                product: "external keyboard",
+                result: kIOReturnError
+            )
         }
     }
 

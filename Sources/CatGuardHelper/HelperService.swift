@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 private final class ArmReply: @unchecked Sendable {
@@ -47,6 +48,13 @@ final class HelperService: NSObject, CatGuardHelperProtocol, @unchecked Sendable
                 latestError = error.localizedDescription
                 keyboard.disarm()
                 reply.call(false, latestError)
+                if let keyboardError = error as? KeyboardDeviceController.Error,
+                    keyboardError.requiresFreshProcessForInputMonitoring
+                {
+                    queue.asyncAfter(deadline: .now() + 0.25) {
+                        exit(EXIT_SUCCESS)
+                    }
+                }
             }
         }
     }

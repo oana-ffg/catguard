@@ -28,10 +28,12 @@
     <true/>
     <key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Oana Alina Goge. MIT licensed.</string>
+    <key>CatGuardHelperCodeSigningRequirement</key>
+    <string>$(CATGUARD_HELPER_SIGNING_REQUIREMENT)</string>
     <key>SMPrivilegedExecutables</key>
     <dict>
         <key>com.oanaffg.CatGuard.Helper</key>
-        <string>anchor apple generic and identifier "com.oanaffg.CatGuard.Helper" and certificate leaf[subject.OU] = "RY297J6VR2"</string>
+        <string>$(CATGUARD_HELPER_SIGNING_REQUIREMENT)</string>
     </dict>
 </dict>
 </plist>

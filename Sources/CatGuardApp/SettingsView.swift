@@ -41,11 +41,17 @@ struct SettingsView: View {
             Section("Keyboard helper") {
                 LabeledContent("Status", value: coordinator.keyboardHelperStatus)
                 Text(
-                    "One administrator approval installs a narrow root helper that can guard external physical keyboards. It restores input automatically if the app heartbeat stops."
+                    "One administrator approval installs a narrow root helper that can guard external physical keyboards. macOS then requires you to add the helper separately in Input Monitoring. It restores input automatically if the app heartbeat stops."
                 )
                 .foregroundStyle(.secondary)
                 Button("Install or Update Keyboard Helper") {
                     coordinator.installKeyboardHelper()
+                }
+                Text("/Library/PrivilegedHelperTools/com.oanaffg.CatGuard.Helper")
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                Button("Open Input Monitoring Settings") {
+                    openInputMonitoringSettings()
                 }
             }
 
@@ -86,6 +92,17 @@ struct SettingsView: View {
 
     private func openFocusSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.Focus-Settings.extension") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func openInputMonitoringSettings() {
+        guard
+            let url = URL(
+                string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+            )
+        else {
             return
         }
         NSWorkspace.shared.open(url)

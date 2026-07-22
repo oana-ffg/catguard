@@ -8,7 +8,10 @@ struct FocusGuardIntent: SetFocusFilterIntent {
     )
     static let openAppWhenRun = false
 
-    @Parameter(title: "Guard against cat input", default: true)
+    // macOS may instantiate `current` with parameter defaults when no Focus
+    // action exists, so the default must be fail-open. A configured filter
+    // explicitly stores `true` when the user enables this toggle.
+    @Parameter(title: "Guard against cat input", default: false)
     var isEnabled: Bool
 
     var displayRepresentation: DisplayRepresentation {

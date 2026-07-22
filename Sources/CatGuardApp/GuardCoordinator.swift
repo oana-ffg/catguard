@@ -46,6 +46,7 @@ final class GuardCoordinator: ObservableObject {
     private var monitorTask: Task<Void, Never>?
     private var lastFocusRefresh = Date.distantPast
     private var lastIdleHelperRefresh = Date.distantPast
+    private var lastUnavailableArmRetry = Date.distantPast
 
     init(defaults: UserDefaults = .standard, keychain: KeychainStore = KeychainStore()) {
         self.defaults = defaults
@@ -106,6 +107,13 @@ final class GuardCoordinator: ObservableObject {
 
     private func refreshKeyboardStateIfNeeded() async {
         if focusActive {
+            if case .unavailable = protectionState {
+                let now = Date()
+                guard now.timeIntervalSince(lastUnavailableArmRetry) >= 10 else { return }
+                lastUnavailableArmRetry = now
+                await arm()
+                return
+            }
             await refreshKeyboardState()
             return
         }
@@ -156,7 +164,15 @@ final class GuardCoordinator: ObservableObject {
     func installKeyboardHelper() {
         do {
             try keyboardGuard.install()
-            settingsMessage = "Keyboard helper installed. CatGuard is ready to follow your Focus Filter."
+            settingsMessage =
+                "Keyboard helper installed. Add it separately in Input Monitoring, then CatGuard will retry automatically."
+            Task {
+                if focusActive {
+                    await arm()
+                } else {
+                    await refreshKeyboardState()
+                }
+            }
         } catch {
             settingsMessage = error.localizedDescription
         }

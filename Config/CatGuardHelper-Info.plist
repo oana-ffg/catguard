@@ -14,9 +14,11 @@
     <string>0.1.0</string>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>CatGuardAppCodeSigningRequirement</key>
+    <string>$(CATGUARD_APP_SIGNING_REQUIREMENT)</string>
     <key>SMAuthorizedClients</key>
     <array>
-        <string>anchor apple generic and identifier "com.oanaffg.CatGuard" and certificate leaf[subject.OU] = "RY297J6VR2"</string>
+        <string>$(CATGUARD_APP_SIGNING_REQUIREMENT)</string>
     </array>
 </dict>
 </plist>

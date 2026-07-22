@@ -2,12 +2,24 @@ import Foundation
 
 enum CatGuardHelperConstants {
     static let machServiceName = "com.oanaffg.CatGuard.Helper"
-    static let teamIdentifier = "RY297J6VR2"
 
-    static let appCodeSigningRequirement =
-        "anchor apple generic and identifier \"com.oanaffg.CatGuard\" and certificate leaf[subject.OU] = \"\(teamIdentifier)\""
-    static let helperCodeSigningRequirement =
-        "anchor apple generic and identifier \"com.oanaffg.CatGuard.Helper\" and certificate leaf[subject.OU] = \"\(teamIdentifier)\""
+    static var appCodeSigningRequirement: String {
+        requirement(named: "CatGuardAppCodeSigningRequirement")
+    }
+
+    static var helperCodeSigningRequirement: String {
+        requirement(named: "CatGuardHelperCodeSigningRequirement")
+    }
+
+    private static func requirement(named key: String) -> String {
+        guard
+            let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
+            !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
+            fatalError("Missing code-signing requirement in Info.plist: \(key)")
+        }
+        return value
+    }
 }
 
 @objc protocol CatGuardHelperProtocol {
