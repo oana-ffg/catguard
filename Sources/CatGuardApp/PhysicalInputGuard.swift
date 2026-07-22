@@ -1,15 +1,20 @@
 import CoreGraphics
 import Foundation
 
-final class PointerGuard: @unchecked Sendable {
+/// Suppresses physical keyboard actions and actionable pointer events while
+/// allowing synthetic events from trusted Computer Use automation to pass.
+final class PhysicalInputGuard: @unchecked Sendable {
     enum StartError: LocalizedError {
         case inputMonitoringDenied
+        case accessibilityDenied
         case eventTapCreationFailed
 
         var errorDescription: String? {
             switch self {
             case .inputMonitoringDenied:
                 "Input Monitoring permission was not granted."
+            case .accessibilityDenied:
+                "Accessibility permission was not granted."
             case .eventTapCreationFailed:
                 "macOS would not create the physical-input event tap."
             }
@@ -17,8 +22,10 @@ final class PointerGuard: @unchecked Sendable {
     }
 
     struct Callbacks: Sendable {
-        let onBlockedClick: @Sendable () -> Void
+        let onBlockedKeyboardInput: @Sendable () -> Void
+        let onBlockedPointerClick: @Sendable () -> Void
         let onCircle: @Sendable () -> Void
+        let onRescuePhrase: @Sendable () -> Void
         let onBypassActivity: @Sendable () -> Void
     }
 
@@ -28,7 +35,19 @@ final class PointerGuard: @unchecked Sendable {
         var circleEnabled = true
         var circleDetector = PointerCircleDetector()
         var circleCallbackPending = false
+        var rescueMatcher = RescueSequenceMatcher(sequence: "catguard")
+        var rescueCallbackPending = false
         var lastActivityCallbackAt: TimeInterval = 0
+    }
+
+    private enum Action {
+        case pass
+        case suppress
+        case blockedKeyboardInput
+        case blockedPointerClick
+        case circle
+        case rescuePhrase
+        case bypassActivity
     }
 
     private let callbacks: Callbacks
@@ -46,6 +65,9 @@ final class PointerGuard: @unchecked Sendable {
         guard CGPreflightListenEventAccess() || CGRequestListenEventAccess() else {
             throw StartError.inputMonitoringDenied
         }
+        guard CGPreflightPostEventAccess() || CGRequestPostEventAccess() else {
+            throw StartError.accessibilityDenied
+        }
 
         let eventTypes: [CGEventType] = [
             .leftMouseDown, .leftMouseUp,
@@ -54,7 +76,7 @@ final class PointerGuard: @unchecked Sendable {
             .mouseMoved,
             .leftMouseDragged, .rightMouseDragged, .otherMouseDragged,
             .scrollWheel,
-            .keyDown,
+            .keyDown, .keyUp, .flagsChanged,
         ]
         let mask = eventTypes.reduce(CGEventMask(0)) { partial, type in
             partial | (CGEventMask(1) << type.rawValue)
@@ -66,7 +88,7 @@ final class PointerGuard: @unchecked Sendable {
                 place: .headInsertEventTap,
                 options: .defaultTap,
                 eventsOfInterest: mask,
-                callback: pointerEventTapCallback,
+                callback: physicalInputEventTapCallback,
                 userInfo: Unmanaged.passUnretained(self).toOpaque()
             )
         else {
@@ -80,13 +102,15 @@ final class PointerGuard: @unchecked Sendable {
         CGEvent.tapEnable(tap: tap, enable: true)
     }
 
-    func setGuarded(_ isGuarded: Bool, circleEnabled: Bool) {
+    func setGuarded(circleEnabled: Bool, rescuePhrase: String) {
         lock.withLock {
-            state.isGuarded = isGuarded
+            state.isGuarded = true
             state.isBypassed = false
             state.circleEnabled = circleEnabled
             state.circleDetector = PointerCircleDetector()
             state.circleCallbackPending = false
+            state.rescueMatcher = RescueSequenceMatcher(sequence: rescuePhrase)
+            state.rescueCallbackPending = false
         }
     }
 
@@ -96,13 +120,19 @@ final class PointerGuard: @unchecked Sendable {
             state.isBypassed = true
             state.circleDetector = PointerCircleDetector()
             state.circleCallbackPending = false
+            state.rescueCallbackPending = false
             state.lastActivityCallbackAt = 0
         }
     }
 
     func setInactive() {
         lock.withLock {
-            state = State(circleEnabled: state.circleEnabled)
+            state.isGuarded = false
+            state.isBypassed = false
+            state.circleDetector = PointerCircleDetector()
+            state.circleCallbackPending = false
+            state.rescueCallbackPending = false
+            state.lastActivityCallbackAt = 0
         }
     }
 
@@ -114,17 +144,10 @@ final class PointerGuard: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         }
 
-        let sourcePID = event.getIntegerValueField(.eventSourceUnixProcessID)
-        guard sourcePID == 0 else {
+        // Physical HID events have consistently reported PID 0 in the hardware
+        // experiments. Computer Use events carry their originating process PID.
+        guard event.getIntegerValueField(.eventSourceUnixProcessID) == 0 else {
             return Unmanaged.passUnretained(event)
-        }
-
-        enum Action {
-            case pass
-            case suppress
-            case blockedClick
-            case circle
-            case bypassActivity
         }
 
         let now = ProcessInfo.processInfo.systemUptime
@@ -153,8 +176,21 @@ final class PointerGuard: @unchecked Sendable {
             }
 
             switch type {
+            case .keyDown:
+                if !state.rescueCallbackPending,
+                    let letter = PhysicalKeyLetterMap.letter(
+                        forMacVirtualKeyCode: event.getIntegerValueField(.keyboardEventKeycode)
+                    ),
+                    state.rescueMatcher.observe(letter)
+                {
+                    state.rescueCallbackPending = true
+                    return .rescuePhrase
+                }
+                return .blockedKeyboardInput
+            case .keyUp, .flagsChanged:
+                return .suppress
             case .leftMouseDown, .rightMouseDown, .otherMouseDown:
-                return .blockedClick
+                return .blockedPointerClick
             case .leftMouseUp, .rightMouseUp, .otherMouseUp,
                 .leftMouseDragged, .rightMouseDragged, .otherMouseDragged,
                 .scrollWheel:
@@ -169,12 +205,19 @@ final class PointerGuard: @unchecked Sendable {
             return Unmanaged.passUnretained(event)
         case .suppress:
             return nil
-        case .blockedClick:
-            callbacks.onBlockedClick()
+        case .blockedKeyboardInput:
+            callbacks.onBlockedKeyboardInput()
+            return nil
+        case .blockedPointerClick:
+            callbacks.onBlockedPointerClick()
             return nil
         case .circle:
             callbacks.onCircle()
             return Unmanaged.passUnretained(event)
+        case .rescuePhrase:
+            callbacks.onBlockedKeyboardInput()
+            callbacks.onRescuePhrase()
+            return nil
         case .bypassActivity:
             callbacks.onBypassActivity()
             return Unmanaged.passUnretained(event)
@@ -182,14 +225,14 @@ final class PointerGuard: @unchecked Sendable {
     }
 }
 
-private func pointerEventTapCallback(
+private func physicalInputEventTapCallback(
     proxy: CGEventTapProxy,
     type: CGEventType,
     event: CGEvent,
     userInfo: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
     guard let userInfo else { return Unmanaged.passUnretained(event) }
-    return Unmanaged<PointerGuard>.fromOpaque(userInfo).takeUnretainedValue().handle(
+    return Unmanaged<PhysicalInputGuard>.fromOpaque(userInfo).takeUnretainedValue().handle(
         type: type,
         event: event
     )

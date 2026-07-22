@@ -14,8 +14,6 @@ settings:
     SWIFT_VERSION: "6.0"
     CODE_SIGN_STYLE: Automatic
     DEVELOPMENT_TEAM: RY297J6VR2
-    CATGUARD_APP_SIGNING_REQUIREMENT: 'anchor apple generic and identifier "com.oanaffg.CatGuard" and certificate leaf[subject.OU] = "$(DEVELOPMENT_TEAM)"'
-    CATGUARD_HELPER_SIGNING_REQUIREMENT: 'anchor apple generic and identifier "com.oanaffg.CatGuard.Helper" and certificate leaf[subject.OU] = "$(DEVELOPMENT_TEAM)"'
     ENABLE_USER_SCRIPT_SANDBOXING: true
     GENERATE_INFOPLIST_FILE: false
     MACOSX_DEPLOYMENT_TARGET: "14.0"
@@ -29,7 +27,6 @@ targets:
       - path: Sources/CatGuardCore
         excludes:
           - PresenceStateMachine.swift
-      - path: Sources/CatGuardShared
       - path: Resources/Assets.xcassets
         buildPhase: resources
     settings:
@@ -42,13 +39,6 @@ targets:
     entitlements:
       path: Config/CatGuard.entitlements
     dependencies:
-      - target: CatGuardHelper
-        embed: true
-        link: false
-        codeSign: true
-        copy:
-          destination: wrapper
-          subpath: Contents/Library/LaunchServices
       - sdk: AppKit.framework
       - sdk: AppIntents.framework
       - sdk: CoreGraphics.framework
@@ -56,29 +46,11 @@ targets:
       - sdk: ServiceManagement.framework
       - sdk: UserNotifications.framework
 
-  CatGuardHelper:
-    type: tool
-    platform: macOS
-    sources:
-      - path: Sources/CatGuardHelper
-      - path: Sources/CatGuardShared
-      - path: Sources/CatGuardCore/RescueSequenceMatcher.swift
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.oanaffg.CatGuard.Helper
-        PRODUCT_NAME: com.oanaffg.CatGuard.Helper
-        INFOPLIST_FILE: Config/CatGuardHelper-Info.plist
-        CREATE_INFOPLIST_SECTION_IN_BINARY: true
-        OTHER_LDFLAGS: "$(inherited) -sectcreate __TEXT __launchd_plist $(PROJECT_DIR)/Config/CatGuardHelper-Launchd.plist"
-    dependencies:
-      - sdk: IOKit.framework
-
 schemes:
   CatGuard:
     build:
       targets:
         CatGuard: all
-        CatGuardHelper: all
     run:
       config: Debug
     archive:

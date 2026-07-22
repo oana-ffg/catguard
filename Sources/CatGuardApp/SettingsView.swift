@@ -20,6 +20,15 @@ struct SettingsView: View {
             Section("Status") {
                 LabeledContent("Input", value: coordinator.protectionState.label)
                 LabeledContent("Focus Filter", value: coordinator.focusActive ? "Active" : "Inactive")
+                LabeledContent(
+                    "Manual arm",
+                    value: coordinator.manualArmActive ? "Latched until bypass" : "Off"
+                )
+                if !coordinator.manualArmActive {
+                    Button("Arm now — until circle or rescue phrase") {
+                        coordinator.activateManualGuard()
+                    }
+                }
             }
 
             Section("General") {
@@ -38,20 +47,18 @@ struct SettingsView: View {
                 .foregroundStyle(.secondary)
             }
 
-            Section("Keyboard helper") {
-                LabeledContent("Status", value: coordinator.keyboardHelperStatus)
+            Section("Input permissions") {
                 Text(
-                    "One administrator approval installs a narrow root helper that can guard external physical keyboards. macOS then requires you to add the helper separately in Input Monitoring. It restores input automatically if the app heartbeat stops."
+                    "CatGuard needs Input Monitoring to distinguish physical keyboard and pointer input, and Accessibility to suppress it while armed. It does not install or run a privileged helper."
                 )
                 .foregroundStyle(.secondary)
-                Button("Install or Update Keyboard Helper") {
-                    coordinator.installKeyboardHelper()
-                }
-                Text("/Library/PrivilegedHelperTools/com.oanaffg.CatGuard.Helper")
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                Button("Open Input Monitoring Settings") {
-                    openInputMonitoringSettings()
+                HStack {
+                    Button("Open Input Monitoring") {
+                        openInputMonitoringSettings()
+                    }
+                    Button("Open Accessibility") {
+                        openAccessibilitySettings()
+                    }
                 }
             }
 
@@ -101,6 +108,17 @@ struct SettingsView: View {
         guard
             let url = URL(
                 string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent"
+            )
+        else {
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func openAccessibilitySettings() {
+        guard
+            let url = URL(
+                string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility"
             )
         else {
             return

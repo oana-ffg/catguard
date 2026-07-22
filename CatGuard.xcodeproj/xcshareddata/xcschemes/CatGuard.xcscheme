@@ -21,20 +21,6 @@
                ReferencedContainer = "container:CatGuard.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "33426CB8188708AE29940BC0"
-               BuildableName = "CatGuardHelper"
-               BlueprintName = "CatGuardHelper"
-               ReferencedContainer = "container:CatGuard.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

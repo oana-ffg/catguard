@@ -19,7 +19,7 @@ jobs:
       - name: Test Swift package
         run: swift test
 
-      - name: Build app and helper without signing
+      - name: Build app without signing
         run: >-
           xcodebuild -quiet
           -project CatGuard.xcodeproj

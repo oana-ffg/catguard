@@ -1,9 +1,8 @@
 # Architecture
 
-CatGuard has two processes because macOS requires elevated privilege for
-exclusive access to an external keyboard's primary HID collection, while Focus,
-UI, notifications, Keychain, and pointer events belong in the logged-in user
-session.
+CatGuard is a single, unprivileged, logged-in user application. It deliberately
+does not install a root helper, system extension, kernel extension, or virtual
+input driver.
 
 ## User-session app
 
@@ -19,71 +18,54 @@ The `CatGuard` application is an `LSUIElement` menu-bar app. It owns:
 - session counts and bypass idle policy; and
 - end-of-Focus notifications.
 
-The event tap passes nonphysical events through. For guarded physical pointer
-events it observes movement for circle detection, suppresses button actions,
-dragging, and scrolling, and counts button-down events only. During bypass it
-passes input through and treats physical movement, buttons, scrolling, and keys
-as activity that resets the five-minute inactivity timer.
+The event tap receives physical keyboard and pointer events before normal app
+dispatch. Experiments on the supported hardware identify physical events by
+`eventSourceUnixProcessID == 0`; events created by Computer Use carry their
+originating process ID and pass through unchanged.
 
-## Privileged helper
+While guarded, CatGuard suppresses physical key-down, key-up, and modifier
+events. It counts key-downs only. It maps ANSI letter-position virtual key codes
+to an in-memory rescue-phrase matcher; it does not construct, store, log, or
+transmit typed text. Pointer movement remains visible and supplies relative
+deltas to the circle detector. Button actions, dragging, and scrolling are
+suppressed, and button-down events are counted.
 
-`com.oanaffg.CatGuard.Helper` is embedded under
-`Contents/Library/LaunchServices` and installed with one administrator approval.
-It owns:
-
-- enumeration of non-built-in physical keyboard HID collections;
-- all-or-nothing exclusive open and rollback;
-- key-down counting;
-- in-memory rescue phrase matching;
-- immediate release; and
-- a three-second heartbeat watchdog.
-
-The helper does not read Keychain, Focus state, arbitrary files, shell commands,
-network data, or pointer input. It exposes no general-purpose privileged API.
-
-The app and helper authenticate each other with code-signing requirements over
-XPC. The helper interface contains only `arm`, `disarm`, and `heartbeat`; replies
-carry success/error state, drained key-down counts, and the rescue-trigger bit.
-The requirements are injected into both Info plists at build time. Apple-signed
-builds bind to the development team; local-only builds bind to the exact
-self-signed certificate fingerprint. The same requirements are used by
-`SMJobBless` and the live XPC connections, so the two trust boundaries cannot
-silently drift apart.
+During bypass, every physical event passes through. Activity resets the
+five-minute continuous-inactivity timer. Synthetic events never affect that
+timer.
 
 ## State and fail-open behavior
 
 The app has four visible states:
 
-- **Input active** (green): Focus is inactive and physical input is available.
-- **Guarded** (red): helper-confirmed keyboard seizure and pointer filtering are
-  both active.
+- **Input active** (green): no activation reason exists and physical input is
+  available.
+- **Guarded** (red): the suppressing event tap was created successfully and its
+  keyboard and pointer policies are active.
 - **Bypassed** (green): physical input is available until it has been idle for
   five continuous minutes, as long as Focus remains active.
-- **Unavailable** (orange): permissions, helper communication, or acquisition
-  failed. CatGuard restores input rather than claiming partial protection.
+- **Unavailable** (orange): a required permission is absent or macOS refused to
+  create the event tap. Physical input remains available.
 
-The order for arming is keyboard first, pointer second. If keyboard acquisition
-fails, pointer filtering never activates. On disarm, pointer filtering stops
-immediately and the helper returns the last undrained keyboard count while it
-releases the HID collections.
+The tap is installed once and switched among inactive, guarded, and bypassed
+policies in memory. macOS destroys the tap when the app exits or crashes, so
+physical input fails open without a watchdog or privileged cleanup process. If
+macOS disables the tap for a timeout, its callback immediately re-enables it.
 
-Normal application termination waits for the helper's disarm reply. XPC calls
-have a three-second timeout; abrupt termination and an unresponsive client are
-covered independently by the helper's three-second watchdog.
+Circle and rescue-phrase callbacks are latched so one gesture cannot issue
+duplicate bypasses. The rescue phrase is matched from physical ANSI positions,
+which makes it independent of the active text-input destination and avoids
+asking macOS to synthesize suppressed characters.
 
-If macOS denies the helper's Input Monitoring access, the helper fails open and
-exits after returning the error. Launchd starts a fresh process on the app's
-rate-limited retry, allowing a newly granted TCC permission to take effect
-without requiring a reboot.
+## Trust boundary
 
-## Why the helper uses SMJobBless
+Input Monitoring and Accessibility are powerful, system-wide permissions. A
+malicious build with the same capabilities could observe keystrokes across
+applications or interfere with input. Removing the helper removes an
+administrator/root trust boundary, but does not make blind binary installation
+appropriate. The recommended distribution model remains source inspection and
+a build signed by the person who will run it.
 
-`SMJobBless` is deprecated. The preferred `SMAppService` launch-daemon path was
-considered first, but current macOS reports show root daemons registered that way
-can still be denied exclusive keyboard HID access while an `SMJobBless` helper
-succeeds. Because keyboard seizure is the helper's entire purpose, CatGuard uses
-the older narrow mechanism until the modern path is empirically equivalent.
-
-This is a documented compatibility choice, not an assertion that root bypasses
-TCC. Each packaged release must repeat the helper installation and HID tests on
-its supported macOS versions.
+The repository has no networking dependency in the app target. Reviewers should
+still verify that invariant, the PID filter, and the absence of persistence for
+input contents on every release.

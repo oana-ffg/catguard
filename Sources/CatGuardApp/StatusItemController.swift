@@ -37,6 +37,22 @@ final class StatusItemController: NSObject {
         menu.addItem(stateItem)
         menu.addItem(.separator())
 
+        if coordinator.manualArmActive {
+            let manualItem = NSMenuItem(
+                title: "Manual arm latched until bypass",
+                action: nil,
+                keyEquivalent: ""
+            )
+            manualItem.isEnabled = false
+            menu.addItem(manualItem)
+        } else {
+            menu.addItem(
+                withTitle: "Arm now — until circle or rescue phrase",
+                action: #selector(activateManualGuard),
+                keyEquivalent: ""
+            )
+        }
+
         if coordinator.focusActive {
             switch coordinator.protectionState {
             case .guarded:
@@ -46,12 +62,16 @@ final class StatusItemController: NSObject {
                     keyEquivalent: ""
                 )
             case .bypassed:
-                menu.addItem(withTitle: "Arm now", action: #selector(armNow), keyEquivalent: "")
+                menu.addItem(
+                    withTitle: "Re-arm Focus now",
+                    action: #selector(rearmFocusNow),
+                    keyEquivalent: ""
+                )
             default:
                 break
             }
-            menu.addItem(.separator())
         }
+        menu.addItem(.separator())
 
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
         menu.addItem(withTitle: "About CatGuard", action: #selector(openAbout), keyEquivalent: "")
@@ -70,8 +90,12 @@ final class StatusItemController: NSObject {
         coordinator.beginBypass()
     }
 
-    @objc private func armNow() {
-        coordinator.armNow()
+    @objc private func activateManualGuard() {
+        coordinator.activateManualGuard()
+    }
+
+    @objc private func rearmFocusNow() {
+        coordinator.rearmFocusNow()
     }
 
     @objc private func openSettings() {

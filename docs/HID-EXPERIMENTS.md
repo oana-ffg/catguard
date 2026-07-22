@@ -23,17 +23,18 @@ to operate the GUI while physical input is guarded.
 
 ## Result summary
 
-The validated design is intentionally split:
+The validated production design is a single user-session event tap:
 
-- A Core Graphics event tap observes and suppresses physical pointer clicks,
-  drags, and scrolling. It also receives relative X/Y deltas for a one-finger
-  circle escape gesture.
-- A privileged helper exclusively opens physical keyboard HID collections.
-  This blocks keyboard input below the application-shortcut layer.
+- A Core Graphics event tap observes and suppresses physical keyboard events,
+  pointer clicks, drags, and scrolling. It also receives relative X/Y deltas for
+  a one-finger circle escape gesture.
 - Synthetic Computer Use interactions remain functional.
 - A natural one-finger circle temporarily releases physical input.
-- A hard timer, helper watchdog, rescue phrase, and process-exit cleanup provide
-  independent recovery routes.
+- A rescue phrase and process-exit cleanup provide independent recovery routes.
+
+Interactive IOHID seizure remains a useful diagnostic result, but the attempted
+background helper was rejected after macOS reported success without actually
+seizing the devices.
 
 ## Experiment 1: exclusive IOHID seizure
 
@@ -63,8 +64,8 @@ an ordinary user process, even with Input Monitoring access. Running the same
 test through `sudo` succeeded. The primary trackpad collection could be seized
 without root.
 
-This is why the production design needs a narrowly scoped privileged keyboard
-helper but can keep pointer gesture recognition in the user-session app.
+This initially suggested a narrowly scoped privileged keyboard helper. The
+packaged-helper experiment below disproved that production assumption.
 
 ### Relevant command
 
@@ -148,6 +149,50 @@ events even though access checks and tap creation succeeded. The same executable
 launched directly from Terminal received events. Production therefore uses a
 real signed user-session application with explicit Input Monitoring onboarding.
 
+### Permission identity and suppressing taps
+
+A listening event tap needs Input Monitoring, but the production tap is created
+with `.defaultTap` so it can suppress clicks, drags, and scrolling. macOS also
+requires Accessibility (`kTCCServicePostEvent`) for that capability. Checking
+only `CGPreflightListenEventAccess()` produced a misleading generic tap-creation
+failure when Accessibility was absent; production now preflights both services
+and reports the missing permission directly.
+
+TCC permissions are tied to a code-signing requirement, not merely a bundle ID.
+After changing from the local self-signed certificate to an Apple Development
+Team signature, the old rows remained visually enabled but did not match the
+new executable. Removing and re-adding CatGuard in both Input Monitoring and
+Accessibility replaced those stale requirements. Rebuilds that retain the same
+Team identity do not need this transition cleanup.
+
+## Experiment 4: keyboard suppression in the event tap
+
+The pointer tap was extended to receive physical key-down, key-up, and modifier
+events. The same PID-0 classifier used for the proven pointer boundary separates
+hardware input from process-originated Computer Use events.
+
+### Production behavior
+
+- Physical keyboard events are returned as `nil` and never reach ordinary app
+  shortcut or text-input dispatch.
+- Key-down events are counted; key-up and modifier transitions are suppressed
+  without inflating the count.
+- ANSI letter-position virtual key codes feed only an in-memory rescue matcher.
+  CatGuard does not build, persist, log, or transmit typed strings.
+- Synthetic events retain their source PID and pass through unchanged.
+- The app needs no administrator approval, daemon, or root process.
+- App termination destroys the event tap, restoring input automatically.
+
+The installed Team-signed build was then exercised with the Focus Filter active.
+Random keys on the external Apple keyboard were suppressed, while Computer Use
+typed `Cylvia` into Photos and loaded the matching results. This repeated the
+physical-versus-synthetic boundary test in the actual production process rather
+than relying on the earlier Terminal probe.
+
+This has a narrower guarantee than real IOHID seizure: it filters at the Core
+Graphics event layer rather than owning the hardware collection. That is the
+right tradeoff for an accidental-cat threat model and a Computer Use exception.
+
 ## Circle escape gesture
 
 The escape detector uses only physical PID-0 relative pointer deltas, so it works
@@ -175,31 +220,46 @@ temporary computer privileges.
 
 The production app must preserve these invariants:
 
-1. Never report guarded unless both pointer suppression and keyboard seizure are
-   confirmed.
-2. If helper communication, permissions, or device acquisition fails, release
-   physical input and show an error state.
-3. The helper releases all keyboard collections when its app heartbeat expires.
-4. Quitting normally disarms before exit; forced termination is covered by the
-   helper watchdog.
-5. A successful circle or rescue phrase releases immediately.
-6. A temporary release re-arms only if the configured Focus remains active.
-7. Synthetic Computer Use events remain outside the physical-input suppression
+1. Never report guarded unless the suppressing event tap was created and both
+   keyboard and pointer policies are active.
+2. If permissions or tap creation fail, leave physical input available and show
+   an error state.
+3. Quitting or crashing must restore input through ordinary event-tap teardown.
+4. A successful circle or rescue phrase releases immediately.
+5. A temporary release re-arms only if the configured Focus remains active.
+6. Synthetic Computer Use events remain outside the physical-input suppression
    path.
 
-## Production helper caveat
+## Experiment 5: packaged privileged helper
 
-Apple's modern `SMAppService` can register an approved launch daemon and start it
-on subsequent boots. However, developers have reproduced a macOS 26/TCC problem
-where an `SMAppService` root daemon cannot exclusively open keyboard HID devices
-while an older `SMJobBless` helper can. See the
-[`SMAppService` documentation](https://developer.apple.com/documentation/servicemanagement/smappservice)
-and the
-[matching Apple Developer Forums investigation](https://developer.apple.com/forums/thread/795686).
+CatGuard implemented and signed an authenticated `SMJobBless` helper after
+reports that `SMAppService` launch daemons could not seize keyboard collections.
+The app and helper exchanged only arm, disarm, and heartbeat messages, and the
+helper received explicit Input Monitoring permission.
 
-CatGuard must empirically validate the packaged helper on the target macOS
-release. It must not assume that UID 0 automatically bypasses Input Monitoring
-or other TCC policy.
+### What did not work
+
+In the launchd helper context, `IOHIDDeviceOpen` with
+`kIOHIDOptionsTypeSeizeDevice` returned `kIOReturnSuccess`, and the helper kept
+the device objects open. Nevertheless, physical keyboard input continued to
+reach applications. I/O Registry inspection for the live helper PID showed
+`ClientOptions=1` but `ClientSeized=No` on every relevant
+`IOHIDLibUserClient`. Reinstalling the helper after TCC permission was granted
+started a fresh process but produced the same result.
+
+That silent false positive was worse than an explicit failure: the app painted
+its icon red while the keyboard remained usable. The same API had genuinely
+seized the same keyboard in the interactive `sudo` diagnostic, so the difference
+was the background launchd/audit-session context rather than the device filter.
+
+### Decision
+
+The privileged helper, XPC protocol, embedded launchd configuration, and admin
+installation UI were removed. Production now uses the already-proven
+user-session event tap for the keyboard as well as the pointer. This makes the
+status truthful, removes root privilege, and preserves the required Computer Use
+boundary. The old interactive IOHID utility remains only as a hard-timed research
+tool.
 
 ## Human-factor cues
 

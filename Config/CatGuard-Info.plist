@@ -28,12 +28,5 @@
     <true/>
     <key>NSHumanReadableCopyright</key>
 	<string>Copyright © 2026 Oana Alina Goge. MIT licensed.</string>
-    <key>CatGuardHelperCodeSigningRequirement</key>
-    <string>$(CATGUARD_HELPER_SIGNING_REQUIREMENT)</string>
-    <key>SMPrivilegedExecutables</key>
-    <dict>
-        <key>com.oanaffg.CatGuard.Helper</key>
-        <string>$(CATGUARD_HELPER_SIGNING_REQUIREMENT)</string>
-    </dict>
 </dict>
 </plist>

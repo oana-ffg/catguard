@@ -7,12 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0127ED6DF6C683AA4CE24DFC /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3172DFDEAD4790EB8148CED1 /* HelperProtocol.swift */; };
 		01B91B39AAFF6D17B39088F5 /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9E4FCE1FD19AA2654FEA7D3 /* AboutView.swift */; };
 		03FB00FFE91BD2607402B9E2 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4303F57CAC48DA81FDEB0447 /* CoreGraphics.framework */; };
-		0A958FDA66AA7D8A7918051A /* HelperProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3172DFDEAD4790EB8148CED1 /* HelperProtocol.swift */; };
-		0E517F82978847756B4D4DB5 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 466A35F8EC306A862E9EEEC7 /* IOKit.framework */; };
-		182E2A4E218862E69B05D739 /* HelperService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9634B024F724B7A3F621AE7E /* HelperService.swift */; };
 		18BC9DA3301D5FCA0204CAF1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FC7D8E12C07197AB04DDF23 /* SettingsView.swift */; };
 		1CEB428FA9C9670F0345D273 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0E72276BBD2337B8D5ECED29 /* UserNotifications.framework */; };
 		1DA08E37635D69842A30DFB1 /* GuardCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE6A0D9A99F2BE7B89BF9372 /* GuardCoordinator.swift */; };
@@ -20,80 +16,48 @@
 		3BAF20013623C224828FC83C /* StatusItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E890D753BB19571E13A0B455 /* StatusItemController.swift */; };
 		3E30DEA03AE1AAB17D70A05D /* RescueSequenceMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C067E22E5DDB45CD77E9796 /* RescueSequenceMatcher.swift */; };
 		466113D90813F860ECE5378E /* FocusGuardIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27D3BAA46F54CF207FD6A8DA /* FocusGuardIntent.swift */; };
+		46FAF7369E4D9B1AF2F2F2C0 /* PhysicalKeyLetterMap.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE6F42452A016CB678DB17D6 /* PhysicalKeyLetterMap.swift */; };
 		4F018ACFA369E6475DB50094 /* PointerCircleDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = D85FC9FE33F264412266DE4F /* PointerCircleDetector.swift */; };
 		5ADAD1FB86D3CC42AA55152C /* SessionNotifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF989609DF27749BF6376F5D /* SessionNotifier.swift */; };
-		604AB8462AEF5DA97E9FC3DC /* RescueSequenceMatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C067E22E5DDB45CD77E9796 /* RescueSequenceMatcher.swift */; };
+		62E06AE0CE60522703BC0C6A /* GuardActivationReasons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F2683AC0F4E8FA926BFABA5 /* GuardActivationReasons.swift */; };
 		6787BA545D3E7564DE50330A /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 253EE78F79668B7BA282F082 /* KeychainStore.swift */; };
-		6D501614A15BDAE6E17E7186 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E06BFA955B3E24F85FEE2B2 /* main.swift */; };
 		70F6558288A4B552E6EB7A8D /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A55316F5D42AC06D83239452 /* ServiceManagement.framework */; };
-		73EDBF5A12D0A6CD508D642B /* KeyboardDeviceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2ED6B0DC0850ECF4D66827A /* KeyboardDeviceController.swift */; };
-		775190DC8A8EEBB7E3382332 /* PointerGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5281D7754CD8C0BB09E1CF9 /* PointerGuard.swift */; };
 		9587572329B1814FD75171E7 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9017C1DFCFA72FCCE308DEE3 /* Security.framework */; };
 		A7D7CD84338B5C010612CBE9 /* LoginItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7842018149416EFFC180FB42 /* LoginItemController.swift */; };
 		B382ECA495C689686D66D7D7 /* CatGuardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE60F15C526B35CAE524CE3 /* CatGuardApp.swift */; };
 		C738C515671DC50A63A30FB6 /* ProtectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9D6E9F0EFFCAE442E7BFDF /* ProtectionState.swift */; };
 		C7CEE8A3E4EB3C0F61D9D25D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A90AF014619CF983F7CAE703 /* Assets.xcassets */; };
-		D4EC7B5BE472298541926D09 /* CatGuardHelper in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = BBC051F6DF81E333C4C1D1C8 /* CatGuardHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		D9D85DCD30394CD5B00C13DD /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988C87574EE6B51BE6B5D706 /* AppIntents.framework */; };
+		DA3910EB555179419FE85BDA /* PhysicalInputGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2871B7D68E82DBD9E546089 /* PhysicalInputGuard.swift */; };
 		DB0F852DEE3BF98C918A41CB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84C982869F4F342BDDB97B2 /* AppDelegate.swift */; };
 		E109A0A4ECE5FFBC11C9D72A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50B5248F6988127543478CC4 /* AppKit.framework */; };
-		F9AF9D72B72D6A236B75000E /* KeyboardGuardClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C27B945A5FBD7F47FD9BA0D /* KeyboardGuardClient.swift */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXContainerItemProxy section */
-		FF4DA18B94807C5BF8C56B11 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 7962F5D5AAA57EE97CD0FDBD /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = 33426CB8188708AE29940BC0;
-			remoteInfo = CatGuardHelper;
-		};
-/* End PBXContainerItemProxy section */
-
-/* Begin PBXCopyFilesBuildPhase section */
-		B4491E2DB45A3C8E75AFDE07 /* Embed Dependencies */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchServices;
-			dstSubfolderSpec = 1;
-			files = (
-				D4EC7B5BE472298541926D09 /* CatGuardHelper in Embed Dependencies */,
-			);
-			name = "Embed Dependencies";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		01E4131EA7EE8A998EF55147 /* GuardSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardSession.swift; sourceTree = "<group>"; };
 		0BE60F15C526B35CAE524CE3 /* CatGuardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatGuardApp.swift; sourceTree = "<group>"; };
 		0E72276BBD2337B8D5ECED29 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		0FC7D8E12C07197AB04DDF23 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		1F2683AC0F4E8FA926BFABA5 /* GuardActivationReasons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardActivationReasons.swift; sourceTree = "<group>"; };
 		253EE78F79668B7BA282F082 /* KeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainStore.swift; sourceTree = "<group>"; };
 		27D3BAA46F54CF207FD6A8DA /* FocusGuardIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusGuardIntent.swift; sourceTree = "<group>"; };
 		2C067E22E5DDB45CD77E9796 /* RescueSequenceMatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RescueSequenceMatcher.swift; sourceTree = "<group>"; };
-		2E06BFA955B3E24F85FEE2B2 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
-		3172DFDEAD4790EB8148CED1 /* HelperProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperProtocol.swift; sourceTree = "<group>"; };
 		4303F57CAC48DA81FDEB0447 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
-		466A35F8EC306A862E9EEEC7 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		50B5248F6988127543478CC4 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
-		5C27B945A5FBD7F47FD9BA0D /* KeyboardGuardClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardGuardClient.swift; sourceTree = "<group>"; };
 		7842018149416EFFC180FB42 /* LoginItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemController.swift; sourceTree = "<group>"; };
 		9017C1DFCFA72FCCE308DEE3 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
-		9634B024F724B7A3F621AE7E /* HelperService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperService.swift; sourceTree = "<group>"; };
 		988C87574EE6B51BE6B5D706 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
-		A5281D7754CD8C0BB09E1CF9 /* PointerGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerGuard.swift; sourceTree = "<group>"; };
+		A2871B7D68E82DBD9E546089 /* PhysicalInputGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicalInputGuard.swift; sourceTree = "<group>"; };
 		A55316F5D42AC06D83239452 /* ServiceManagement.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ServiceManagement.framework; path = System/Library/Frameworks/ServiceManagement.framework; sourceTree = SDKROOT; };
 		A84C982869F4F342BDDB97B2 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A90AF014619CF983F7CAE703 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AE6F42452A016CB678DB17D6 /* PhysicalKeyLetterMap.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicalKeyLetterMap.swift; sourceTree = "<group>"; };
 		AF989609DF27749BF6376F5D /* SessionNotifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionNotifier.swift; sourceTree = "<group>"; };
 		B06431E0616EF4AF19594639 /* CatGuard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CatGuard.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		BBC051F6DF81E333C4C1D1C8 /* CatGuardHelper */ = {isa = PBXFileReference; includeInIndex = 0; path = CatGuardHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		BE6A0D9A99F2BE7B89BF9372 /* GuardCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardCoordinator.swift; sourceTree = "<group>"; };
 		C9E4FCE1FD19AA2654FEA7D3 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		D85FC9FE33F264412266DE4F /* PointerCircleDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerCircleDetector.swift; sourceTree = "<group>"; };
 		DD9D6E9F0EFFCAE442E7BFDF /* ProtectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectionState.swift; sourceTree = "<group>"; };
-		E2ED6B0DC0850ECF4D66827A /* KeyboardDeviceController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardDeviceController.swift; sourceTree = "<group>"; };
 		E890D753BB19571E13A0B455 /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
 		F31BBE8DE4D3A5A27B35FB6C /* CatGuard-AppIcon-1024.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "CatGuard-AppIcon-1024.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -112,14 +76,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D72FEC99662D9E80F3D2EDCD /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0E517F82978847756B4D4DB5 /* IOKit.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -131,10 +87,9 @@
 				0BE60F15C526B35CAE524CE3 /* CatGuardApp.swift */,
 				27D3BAA46F54CF207FD6A8DA /* FocusGuardIntent.swift */,
 				BE6A0D9A99F2BE7B89BF9372 /* GuardCoordinator.swift */,
-				5C27B945A5FBD7F47FD9BA0D /* KeyboardGuardClient.swift */,
 				253EE78F79668B7BA282F082 /* KeychainStore.swift */,
 				7842018149416EFFC180FB42 /* LoginItemController.swift */,
-				A5281D7754CD8C0BB09E1CF9 /* PointerGuard.swift */,
+				A2871B7D68E82DBD9E546089 /* PhysicalInputGuard.swift */,
 				DD9D6E9F0EFFCAE442E7BFDF /* ProtectionState.swift */,
 				AF989609DF27749BF6376F5D /* SessionNotifier.swift */,
 				0FC7D8E12C07197AB04DDF23 /* SettingsView.swift */,
@@ -147,17 +102,8 @@
 			isa = PBXGroup;
 			children = (
 				B06431E0616EF4AF19594639 /* CatGuard.app */,
-				BBC051F6DF81E333C4C1D1C8 /* CatGuardHelper */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		1E766593025C82A8FD3D8932 /* CatGuardShared */ = {
-			isa = PBXGroup;
-			children = (
-				3172DFDEAD4790EB8148CED1 /* HelperProtocol.swift */,
-			);
-			path = CatGuardShared;
 			sourceTree = "<group>";
 		};
 		45C1A9C9BF6D2682ADB9691E /* Sources */ = {
@@ -165,20 +111,8 @@
 			children = (
 				024019BB9591AE1C943FA66C /* CatGuardApp */,
 				BD4418A4A457D5A1ABDFBDB1 /* CatGuardCore */,
-				4AD0182C13764AF5F3EF361C /* CatGuardHelper */,
-				1E766593025C82A8FD3D8932 /* CatGuardShared */,
 			);
 			path = Sources;
-			sourceTree = "<group>";
-		};
-		4AD0182C13764AF5F3EF361C /* CatGuardHelper */ = {
-			isa = PBXGroup;
-			children = (
-				9634B024F724B7A3F621AE7E /* HelperService.swift */,
-				E2ED6B0DC0850ECF4D66827A /* KeyboardDeviceController.swift */,
-				2E06BFA955B3E24F85FEE2B2 /* main.swift */,
-			);
-			path = CatGuardHelper;
 			sourceTree = "<group>";
 		};
 		8B6A0D2D4E1F6A877CA08D79 = {
@@ -202,7 +136,9 @@
 		BD4418A4A457D5A1ABDFBDB1 /* CatGuardCore */ = {
 			isa = PBXGroup;
 			children = (
+				1F2683AC0F4E8FA926BFABA5 /* GuardActivationReasons.swift */,
 				01E4131EA7EE8A998EF55147 /* GuardSession.swift */,
+				AE6F42452A016CB678DB17D6 /* PhysicalKeyLetterMap.swift */,
 				D85FC9FE33F264412266DE4F /* PointerCircleDetector.swift */,
 				2C067E22E5DDB45CD77E9796 /* RescueSequenceMatcher.swift */,
 			);
@@ -215,7 +151,6 @@
 				988C87574EE6B51BE6B5D706 /* AppIntents.framework */,
 				50B5248F6988127543478CC4 /* AppKit.framework */,
 				4303F57CAC48DA81FDEB0447 /* CoreGraphics.framework */,
-				466A35F8EC306A862E9EEEC7 /* IOKit.framework */,
 				9017C1DFCFA72FCCE308DEE3 /* Security.framework */,
 				A55316F5D42AC06D83239452 /* ServiceManagement.framework */,
 				0E72276BBD2337B8D5ECED29 /* UserNotifications.framework */,
@@ -235,24 +170,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		33426CB8188708AE29940BC0 /* CatGuardHelper */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = C7292A18030C50BECAD515AA /* Build configuration list for PBXNativeTarget "CatGuardHelper" */;
-			buildPhases = (
-				20736FE706B03F4F6BB1B427 /* Sources */,
-				D72FEC99662D9E80F3D2EDCD /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = CatGuardHelper;
-			packageProductDependencies = (
-			);
-			productName = CatGuardHelper;
-			productReference = BBC051F6DF81E333C4C1D1C8 /* CatGuardHelper */;
-			productType = "com.apple.product-type.tool";
-		};
 		B9E82A23CA07A8A5E4C47C5C /* CatGuard */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9D2690817EF8A38F79FDE6B4 /* Build configuration list for PBXNativeTarget "CatGuard" */;
@@ -260,12 +177,10 @@
 				4375FA93972499255AAEDF35 /* Sources */,
 				6EF4C32B3CAC451276371CF9 /* Resources */,
 				2708CD78E729AD1B9FC311A7 /* Frameworks */,
-				B4491E2DB45A3C8E75AFDE07 /* Embed Dependencies */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				19CF97936D477E25A6184211 /* PBXTargetDependency */,
 			);
 			name = CatGuard;
 			packageProductDependencies = (
@@ -283,10 +198,6 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					33426CB8188708AE29940BC0 = {
-						DevelopmentTeam = RY297J6VR2;
-						ProvisioningStyle = Automatic;
-					};
 					B9E82A23CA07A8A5E4C47C5C = {
 						DevelopmentTeam = RY297J6VR2;
 						ProvisioningStyle = Automatic;
@@ -308,7 +219,6 @@
 			projectRoot = "";
 			targets = (
 				B9E82A23CA07A8A5E4C47C5C /* CatGuard */,
-				33426CB8188708AE29940BC0 /* CatGuardHelper */,
 			);
 		};
 /* End PBXProject section */
@@ -325,18 +235,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		20736FE706B03F4F6BB1B427 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				0A958FDA66AA7D8A7918051A /* HelperProtocol.swift in Sources */,
-				182E2A4E218862E69B05D739 /* HelperService.swift in Sources */,
-				73EDBF5A12D0A6CD508D642B /* KeyboardDeviceController.swift in Sources */,
-				604AB8462AEF5DA97E9FC3DC /* RescueSequenceMatcher.swift in Sources */,
-				6D501614A15BDAE6E17E7186 /* main.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		4375FA93972499255AAEDF35 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -345,14 +243,14 @@
 				DB0F852DEE3BF98C918A41CB /* AppDelegate.swift in Sources */,
 				B382ECA495C689686D66D7D7 /* CatGuardApp.swift in Sources */,
 				466113D90813F860ECE5378E /* FocusGuardIntent.swift in Sources */,
+				62E06AE0CE60522703BC0C6A /* GuardActivationReasons.swift in Sources */,
 				1DA08E37635D69842A30DFB1 /* GuardCoordinator.swift in Sources */,
 				3931C111DF2BB438CBAF425F /* GuardSession.swift in Sources */,
-				0127ED6DF6C683AA4CE24DFC /* HelperProtocol.swift in Sources */,
-				F9AF9D72B72D6A236B75000E /* KeyboardGuardClient.swift in Sources */,
 				6787BA545D3E7564DE50330A /* KeychainStore.swift in Sources */,
 				A7D7CD84338B5C010612CBE9 /* LoginItemController.swift in Sources */,
+				DA3910EB555179419FE85BDA /* PhysicalInputGuard.swift in Sources */,
+				46FAF7369E4D9B1AF2F2F2C0 /* PhysicalKeyLetterMap.swift in Sources */,
 				4F018ACFA369E6475DB50094 /* PointerCircleDetector.swift in Sources */,
-				775190DC8A8EEBB7E3382332 /* PointerGuard.swift in Sources */,
 				C738C515671DC50A63A30FB6 /* ProtectionState.swift in Sources */,
 				3E30DEA03AE1AAB17D70A05D /* RescueSequenceMatcher.swift in Sources */,
 				5ADAD1FB86D3CC42AA55152C /* SessionNotifier.swift in Sources */,
@@ -363,21 +261,11 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
-/* Begin PBXTargetDependency section */
-		19CF97936D477E25A6184211 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = 33426CB8188708AE29940BC0 /* CatGuardHelper */;
-			targetProxy = FF4DA18B94807C5BF8C56B11 /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
-
 /* Begin XCBuildConfiguration section */
 		0925BDED9CFF23F18091CBF4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CATGUARD_APP_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
-				CATGUARD_HELPER_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard.Helper\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -463,8 +351,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
-				CATGUARD_APP_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
-				CATGUARD_HELPER_SIGNING_REQUIREMENT = "anchor apple generic and identifier \"com.oanaffg.CatGuard.Helper\" and certificate leaf[subject.OU] = \"$(DEVELOPMENT_TEAM)\"";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -521,23 +407,6 @@
 			};
 			name = Release;
 		};
-		51690CD6699434D5EBC258C8 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				INFOPLIST_FILE = "Config/CatGuardHelper-Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				OTHER_LDFLAGS = "$(inherited) -sectcreate __TEXT __launchd_plist $(PROJECT_DIR)/Config/CatGuardHelper-Launchd.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = com.oanaffg.CatGuard.Helper;
-				PRODUCT_NAME = com.oanaffg.CatGuard.Helper;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
 		9D8FC456DF43073C6691D455 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -556,23 +425,6 @@
 			};
 			name = Debug;
 		};
-		E1B812C85075A7A79D761037 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMBINE_HIDPI_IMAGES = YES;
-				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
-				INFOPLIST_FILE = "Config/CatGuardHelper-Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				OTHER_LDFLAGS = "$(inherited) -sectcreate __TEXT __launchd_plist $(PROJECT_DIR)/Config/CatGuardHelper-Launchd.plist";
-				PRODUCT_BUNDLE_IDENTIFIER = com.oanaffg.CatGuard.Helper;
-				PRODUCT_NAME = com.oanaffg.CatGuard.Helper;
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -590,15 +442,6 @@
 			buildConfigurations = (
 				9D8FC456DF43073C6691D455 /* Debug */,
 				12FDEA397076ADB477704DEF /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Debug;
-		};
-		C7292A18030C50BECAD515AA /* Build configuration list for PBXNativeTarget "CatGuardHelper" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				51690CD6699434D5EBC258C8 /* Debug */,
-				E1B812C85075A7A79D761037 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

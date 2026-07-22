@@ -49,7 +49,7 @@ public struct PresenceStateMachine: Sendable {
         at timestamp: Date = Date()
     ) -> PresenceState {
         switch observation {
-        case let .detection(confidence) where confidence >= configuration.confidenceThreshold:
+        case .detection(let confidence) where confidence >= configuration.confidenceThreshold:
             state = .present
             shouldEnablePhysicalInput = true
             resetNegativeDetections()
