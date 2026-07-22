@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Test Swift package
+        run: swift test
+
+      - name: Build app and helper without signing
+        run: >-
+          xcodebuild -quiet
+          -project CatGuard.xcodeproj
+          -scheme CatGuard
+          -configuration Debug
+          CODE_SIGNING_ALLOWED=NO
+          build
