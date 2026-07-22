@@ -110,9 +110,10 @@ func printUsage() {
                            [--allow-built-in]
           catguard help
 
-        The monitor displays only the current in-memory sample and the latest 10
-        detection results. Frames are never saved or recorded. This milestone does
-        not disconnect input devices or run a background daemon.
+        The monitor displays standard and night-enhanced in-memory samples, their
+        latest 10 detection results, and read-only Bluetooth connection/RSSI
+        diagnostics. Frames are never saved or recorded. This milestone does not
+        disconnect input devices or run a background daemon.
         """
     )
 }

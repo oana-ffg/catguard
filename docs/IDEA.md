@@ -1,5 +1,12 @@
 # CatGuard product idea and safety plan
 
+> [!NOTE]
+> The threat is feline, not human. CatGuard prevents accidental input from cats
+> while preserving trusted computer-use automation. It is not an authentication
+> or anti-tampering system. The validated HID and event-tap experiments are
+> recorded in [HID-EXPERIMENTS.md](HID-EXPERIMENTS.md); those results supersede
+> the older Bluetooth-disconnection proposal below.
+
 ## End goal
 
 Build a lightweight macOS daemon for an Apple-silicon Mac with 8 GB RAM. The Mac
@@ -23,9 +30,9 @@ desk/chair crop should be configurable.
 4. An unplugged, unavailable, permission-denied, stalled, or invalid camera
    immediately enables every managed input device. Unplugging the camera is the
    physical emergency stop.
-5. Only selected physical Bluetooth devices are disconnected. CatGuard must not
-   install a global input-event filter, because synthetic Accessibility/Core
-   Graphics events from computer-use agents must remain functional.
+5. Keyboard HID seizure and pointer-event suppression must affect physical input
+   only. Synthetic Computer Use actions must remain functional; this boundary is
+   an empirical release gate.
 6. A watchdog or independent cleanup mechanism enables all managed devices if
    the daemon exits unexpectedly.
 7. SSH or Screen Sharing remains configured as a secondary recovery route.
@@ -66,6 +73,14 @@ documented lifetime and fail-safe behavior, not persisted state.
 - CLI reports `PRESENT` or `UNCERTAIN` plus confidence and camera name.
 - Native debug monitor shows the exact in-memory sampled frame, current detection
   result, confidence, and the latest 10 metadata-only results.
+- Debug-only night analysis creates an adaptively exposure/gamma-enhanced frame
+  in memory, analyzes it separately, and displays both results. Source luminance
+  is tracked so a nearly black frame cannot silently masquerade as evidence of
+  absence.
+- Read-only Bluetooth diagnostics show paired-device connection state and raw
+  RSSI history where macOS provides a live value. Disconnected-device RSSI is
+  discarded because `system_profiler` can report stale cached values. RSSI is a
+  noisy proximity hint, not a defensible physical-distance measurement.
 - Pure, tested state machine captures immediate presence, delayed/repeated
   absence, and camera-failure recovery semantics.
 - No device control, background daemon, or persistent state.
@@ -73,6 +88,9 @@ documented lifetime and fail-safe behavior, not persisted state.
 ### Milestone 2 — physical-device experiment
 
 - Inventory exact Bluetooth keyboard, mouse, and trackpad identifiers.
+- Evaluate whether a separate wearable/phone Bluetooth signal is sufficiently
+  available and stable to supplement camera presence. Do not treat missing RSSI
+  from a connected keyboard or trackpad as absence.
 - Add a tightly scoped `blueutil --disconnect` / reconnect adapter.
 - Before daemon integration, experimentally prove that Codex and Claude can
   still perform GUI actions while those physical devices are disconnected.
@@ -101,5 +119,7 @@ until synthetic agent input and all recovery routes have been validated.
 ## Deliberate exclusions
 
 Python, Docker, Electron, OpenCV, PyTorch, continuous recording, heavyweight
-object-detection models, global keyboard/mouse event filtering, and any image
-logging or persistence are outside the design.
+object-detection models, private multitouch protocol dependencies, and any image
+logging or persistence are outside the design. A narrowly scoped Core Graphics
+pointer tap is now included because testing proved it blocks physical
+interaction while preserving Computer Use.

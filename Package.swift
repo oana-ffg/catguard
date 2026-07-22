@@ -9,12 +9,17 @@ let package = Package(
     ],
     products: [
         .executable(name: "catguard", targets: ["CatGuardCLI"]),
+        .executable(name: "catguard-hid-test", targets: ["CatGuardHIDTest"]),
         .library(name: "CatGuardCore", targets: ["CatGuardCore"]),
     ],
     targets: [
         .target(name: "CatGuardCore"),
         .executableTarget(
             name: "CatGuardCLI",
+            dependencies: ["CatGuardCore"]
+        ),
+        .executableTarget(
+            name: "CatGuardHIDTest",
             dependencies: ["CatGuardCore"]
         ),
         .testTarget(
