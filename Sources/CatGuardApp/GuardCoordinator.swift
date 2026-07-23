@@ -19,6 +19,8 @@ final class GuardCoordinator: ObservableObject {
     }
     @Published var rescuePhrase: String
     @Published private(set) var settingsMessage: String?
+    @Published private(set) var notificationAuthorizationStatus: SessionNotificationAuthorizationStatus =
+        .checking
 
     var focusActive: Bool { activationReasons.focusActive }
     var manualArmActive: Bool { activationReasons.manualArmActive }
@@ -82,7 +84,7 @@ final class GuardCoordinator: ObservableObject {
         monitorTask?.cancel()
     }
 
-    func start() {
+    func start(requestNotificationAuthorization: Bool) {
         launchAtLogin = loginItem.isEnabled
 
         do {
@@ -91,8 +93,8 @@ final class GuardCoordinator: ObservableObject {
             protectionState = .unavailable(error.localizedDescription)
         }
 
-        Task {
-            _ = try? await notifier.requestAuthorization()
+        Task { [weak self] in
+            await self?.prepareNotifications(requestAuthorizationIfNeeded: requestNotificationAuthorization)
         }
 
         monitorTask = Task { [weak self] in
@@ -122,6 +124,16 @@ final class GuardCoordinator: ObservableObject {
         }
     }
 
+    func requestNotificationAuthorization() async {
+        do {
+            _ = try await notifier.requestAuthorization()
+            settingsMessage = nil
+        } catch {
+            settingsMessage = "Notification permission could not be requested: \(error.localizedDescription)"
+        }
+        await refreshNotificationAuthorizationStatus()
+    }
+
     func saveRescuePhrase() {
         let normalized = rescuePhrase.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
         let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz")
@@ -149,7 +161,7 @@ final class GuardCoordinator: ObservableObject {
 
     func beginBypass(trigger: BypassTrigger = .menu) {
         guard activationReasons.shouldGuard, protectionState == .guarded else { return }
-        session.recordBypass()
+        session.recordBypass(at: Date())
         _ = activationReasons.clearManualArm()
 
         if focusActive {
@@ -229,9 +241,30 @@ final class GuardCoordinator: ObservableObject {
         protectionState = .inputActive
 
         guard let report = session.end() else { return }
-        Task {
-            try? await notifier.notify(report: report)
+        Task { [weak self] in
+            guard let self else { return }
+            let authorizationStatus = await notifier.authorizationStatus()
+            notificationAuthorizationStatus = authorizationStatus
+            guard authorizationStatus == .enabled else { return }
+
+            do {
+                try await notifier.notify(report: report)
+            } catch {
+                settingsMessage = "The session report could not be delivered: \(error.localizedDescription)"
+            }
         }
+    }
+
+    private func prepareNotifications(requestAuthorizationIfNeeded: Bool) async {
+        await refreshNotificationAuthorizationStatus()
+        guard requestAuthorizationIfNeeded, notificationAuthorizationStatus == .notRequested else {
+            return
+        }
+        await requestNotificationAuthorization()
+    }
+
+    private func refreshNotificationAuthorizationStatus() async {
+        notificationAuthorizationStatus = await notifier.authorizationStatus()
     }
 
     private func retryUnavailableGuardIfNeeded() {

@@ -6,17 +6,6 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section {
-                Label {
-                    Text(
-                        "CatGuard prevents accidental input from cats. It does not protect this Mac from people and does not replace the lock screen."
-                    )
-                } icon: {
-                    Image(systemName: "pawprint.fill")
-                }
-                .foregroundStyle(.secondary)
-            }
-
             Section("Status") {
                 LabeledContent("Input", value: coordinator.protectionState.label)
                 LabeledContent("Focus Filter", value: coordinator.focusActive ? "Active" : "Inactive")
@@ -49,7 +38,7 @@ struct SettingsView: View {
 
             Section("Input permissions") {
                 Text(
-                    "CatGuard needs Input Monitoring to distinguish physical keyboard and pointer input, and Accessibility to suppress it while armed. It does not install or run a privileged helper."
+                    "CatGuard needs Input Monitoring to distinguish physical keyboard and pointer input, and Accessibility to suppress it while armed."
                 )
                 .foregroundStyle(.secondary)
                 HStack {
@@ -63,7 +52,7 @@ struct SettingsView: View {
             }
 
             Section("Fallback rescue phrase") {
-                SecureField("Rescue phrase", text: $coordinator.rescuePhrase)
+                TextField("Rescue phrase", text: $coordinator.rescuePhrase)
                 HStack {
                     Text(
                         "Type 4–32 letters on the guarded keyboard to bypass until idle. A fresh install uses “catguard.”"
@@ -72,6 +61,31 @@ struct SettingsView: View {
                     .foregroundStyle(.secondary)
                     Spacer()
                     Button("Save") { coordinator.saveRescuePhrase() }
+                }
+            }
+
+            Section("Session reports") {
+                LabeledContent(
+                    "Notifications",
+                    value: coordinator.notificationAuthorizationStatus.label
+                )
+                Text("CatGuard sends a summary when a guarded session ends.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
+                switch coordinator.notificationAuthorizationStatus {
+                case .notRequested:
+                    Button("Enable Notifications") {
+                        Task {
+                            await coordinator.requestNotificationAuthorization()
+                        }
+                    }
+                case .disabled:
+                    Button("Open Notification Settings") {
+                        openNotificationSettings()
+                    }
+                case .checking, .enabled:
+                    EmptyView()
                 }
             }
 
@@ -99,6 +113,17 @@ struct SettingsView: View {
 
     private func openFocusSettings() {
         guard let url = URL(string: "x-apple.systempreferences:com.apple.Focus-Settings.extension") else {
+            return
+        }
+        NSWorkspace.shared.open(url)
+    }
+
+    private func openNotificationSettings() {
+        guard
+            let url = URL(
+                string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension"
+            )
+        else {
             return
         }
         NSWorkspace.shared.open(url)

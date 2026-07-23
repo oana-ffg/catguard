@@ -4,19 +4,20 @@ import XCTest
 
 final class GuardSessionTests: XCTestCase {
     func testSessionCountsOnlyEventsRecordedWhileActive() {
+        let bypassTime = Date(timeIntervalSince1970: 1_000)
         var tracker = GuardSessionTracker()
         tracker.recordBlockedKeyboardInputs()
         tracker.begin()
         tracker.recordBlockedKeyboardInputs(2)
         tracker.recordBlockedPointerClick()
-        tracker.recordBypass()
+        tracker.recordBypass(at: bypassTime)
 
         XCTAssertEqual(
             tracker.end(),
             GuardSessionReport(
                 blockedKeyboardInputs: 2,
                 blockedPointerClicks: 1,
-                bypassCount: 1
+                bypassTimes: [bypassTime]
             )
         )
         tracker.recordBlockedPointerClick()
@@ -53,14 +54,21 @@ final class GuardSessionTests: XCTestCase {
     }
 
     func testNotificationPutsBypassesFirstAndOmitsThemWhenZero() {
+        let timeZone = TimeZone(secondsFromGMT: 0)!
         XCTAssertEqual(
             GuardSessionReport(
                 blockedKeyboardInputs: 12,
                 blockedPointerClicks: 3,
-                bypassCount: 2
-            ).notificationLines,
+                bypassTimes: [
+                    Date(timeIntervalSince1970: 3_661),
+                    Date(timeIntervalSince1970: 7_322),
+                ]
+            ).notificationLines(timeZone: timeZone),
             [
                 "Bypasses: 2",
+                "Bypass times (GMT):",
+                "• 1970-01-01 01:01:01",
+                "• 1970-01-01 02:02:02",
                 "Blocked keyboard inputs: 12",
                 "Blocked pointer clicks: 3",
             ]
@@ -69,8 +77,8 @@ final class GuardSessionTests: XCTestCase {
             GuardSessionReport(
                 blockedKeyboardInputs: 0,
                 blockedPointerClicks: 0,
-                bypassCount: 0
-            ).notificationLines,
+                bypassTimes: []
+            ).notificationLines(timeZone: timeZone),
             [
                 "Blocked keyboard inputs: 0",
                 "Blocked pointer clicks: 0",

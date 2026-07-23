@@ -15,7 +15,7 @@ The `CatGuard` application is an `LSUIElement` menu-bar app. It owns:
 - rescue phrase persistence in Keychain;
 - a PID-filtered Core Graphics event tap;
 - geometric circle detection;
-- session counts and bypass idle policy; and
+- session counts, bypass timestamps, and bypass idle policy; and
 - end-of-Focus notifications.
 
 The event tap receives physical keyboard and pointer events before normal app

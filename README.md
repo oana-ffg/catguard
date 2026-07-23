@@ -48,7 +48,7 @@ Computer Use events alone.
 - Names the bypass trigger in its live status—pointer circle, rescue phrase, or
   menu command—so an unexpected release is visible rather than mysterious.
 - On Focus end, reports blocked keyboard key-downs and pointer clicks separately,
-  with the bypass count first when nonzero. Movement is not counted.
+  with each bypass's local date and time when nonzero. Movement is not counted.
 - Fails open: exiting or crashing destroys the event tap and restores input.
 
 The fresh-install rescue phrase is `catguard`. It uses physical ANSI/QWERTY
