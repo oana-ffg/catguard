@@ -17,7 +17,7 @@ struct FocusGuardIntent: SetFocusFilterIntent {
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
             title: isEnabled ? "Guard against cat input" : "Leave input active",
-            subtitle: "Feline accidents only—not human security"
+            subtitle: "Blocks physical keyboard and pointer input"
         )
     }
 

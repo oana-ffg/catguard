@@ -19,12 +19,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             showSettings: { [weak self] in self?.showSettings() },
             showAbout: { [weak self] in self?.showAbout() }
         )
-        coordinator.start()
 
-        if !UserDefaults.standard.bool(forKey: Self.didShowFirstLaunchSettingsKey) {
+        let isFirstLaunch = !UserDefaults.standard.bool(forKey: Self.didShowFirstLaunchSettingsKey)
+        if isFirstLaunch {
             UserDefaults.standard.set(true, forKey: Self.didShowFirstLaunchSettingsKey)
             showSettings()
         }
+
+        coordinator.start(requestNotificationAuthorization: isFirstLaunch)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
