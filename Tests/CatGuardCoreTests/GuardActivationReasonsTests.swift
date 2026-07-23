@@ -1,34 +1,46 @@
-import XCTest
+import Testing
 
 @testable import CatGuardCore
 
-final class GuardActivationReasonsTests: XCTestCase {
-    func testManualArmSurvivesFocusChanges() {
+@Suite("Guard activation reasons")
+struct GuardActivationReasonsTests {
+    @Test("Manual arm survives Focus changes")
+    func manualArmSurvivesFocusChanges() {
         var reasons = GuardActivationReasons()
 
-        XCTAssertEqual(reasons.latchManualArm(), .activated)
-        XCTAssertEqual(reasons.setFocusActive(true), .unchanged)
-        XCTAssertEqual(reasons.setFocusActive(false), .unchanged)
-        XCTAssertTrue(reasons.shouldGuard)
-        XCTAssertTrue(reasons.manualArmActive)
+        let manualArmTransition = reasons.latchManualArm()
+        let focusActivationTransition = reasons.setFocusActive(true)
+        let focusDeactivationTransition = reasons.setFocusActive(false)
+
+        #expect(manualArmTransition == .activated)
+        #expect(focusActivationTransition == .unchanged)
+        #expect(focusDeactivationTransition == .unchanged)
+        #expect(reasons.shouldGuard)
+        #expect(reasons.manualArmActive)
     }
 
-    func testClearingManualArmDisarmsWithoutFocus() {
+    @Test("Clearing manual arm disarms without Focus")
+    func clearingManualArmDisarmsWithoutFocus() {
         var reasons = GuardActivationReasons()
         _ = reasons.latchManualArm()
 
-        XCTAssertEqual(reasons.clearManualArm(), .deactivated)
-        XCTAssertFalse(reasons.shouldGuard)
+        let transition = reasons.clearManualArm()
+
+        #expect(transition == .deactivated)
+        #expect(!reasons.shouldGuard)
     }
 
-    func testClearingManualArmLeavesFocusProtectionActive() {
+    @Test("Clearing manual arm leaves Focus protection active")
+    func clearingManualArmLeavesFocusProtectionActive() {
         var reasons = GuardActivationReasons()
         _ = reasons.setFocusActive(true)
         _ = reasons.latchManualArm()
 
-        XCTAssertEqual(reasons.clearManualArm(), .unchanged)
-        XCTAssertTrue(reasons.shouldGuard)
-        XCTAssertTrue(reasons.focusActive)
-        XCTAssertFalse(reasons.manualArmActive)
+        let transition = reasons.clearManualArm()
+
+        #expect(transition == .unchanged)
+        #expect(reasons.shouldGuard)
+        #expect(reasons.focusActive)
+        #expect(!reasons.manualArmActive)
     }
 }

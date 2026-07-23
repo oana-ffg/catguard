@@ -1,6 +1,18 @@
 import AppIntents
 import Foundation
 
+enum FocusGuardIntentNotification {
+    static let didPerform = Notification.Name("com.oanaffg.CatGuard.focus-filter-did-perform")
+}
+
+final class DistributedNotificationObserver: @unchecked Sendable {
+    let token: NSObjectProtocol
+
+    init(token: NSObjectProtocol) {
+        self.token = token
+    }
+}
+
 struct FocusGuardIntent: SetFocusFilterIntent {
     static let title: LocalizedStringResource = "CatGuard"
     static let description = IntentDescription(
@@ -26,6 +38,11 @@ struct FocusGuardIntent: SetFocusFilterIntent {
     }
 
     func perform() async throws -> some IntentResult {
+        DistributedNotificationCenter.default().postNotificationName(
+            FocusGuardIntentNotification.didPerform,
+            object: nil,
+            deliverImmediately: true
+        )
         return .result()
     }
 }

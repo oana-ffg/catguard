@@ -52,7 +52,7 @@ struct SettingsView: View {
             }
 
             Section("Fallback rescue phrase") {
-                TextField("Rescue phrase", text: $coordinator.rescuePhrase)
+                TextField("Rescue phrase", text: $coordinator.rescuePhraseDraft)
                 HStack {
                     Text(
                         "Type 4–32 letters on the guarded keyboard to bypass until idle. A fresh install uses “catguard.”"
@@ -103,6 +103,13 @@ struct SettingsView: View {
                 Section {
                     Text(message)
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            if let issue = coordinator.focusMonitoringIssue {
+                Section("Focus monitoring") {
+                    Text(issue)
+                        .foregroundStyle(coordinator.focusMonitoringUnavailable ? .orange : .secondary)
                 }
             }
         }

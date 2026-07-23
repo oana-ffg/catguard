@@ -12,13 +12,15 @@ final class GuardCoordinator: ObservableObject {
             if protectionState == .guarded {
                 inputGuard.setGuarded(
                     circleEnabled: circleEnabled,
-                    rescuePhrase: rescuePhrase
+                    rescuePhrase: savedRescuePhrase
                 )
             }
         }
     }
-    @Published var rescuePhrase: String
+    @Published var rescuePhraseDraft = RescuePhrase.default.value
     @Published private(set) var settingsMessage: String?
+    @Published private(set) var focusMonitoringIssue: String?
+    @Published private(set) var focusMonitoringUnavailable = false
     @Published private(set) var notificationAuthorizationStatus: SessionNotificationAuthorizationStatus =
         .checking
 
@@ -54,7 +56,10 @@ final class GuardCoordinator: ObservableObject {
     )
     private var session = GuardSessionTracker()
     private var bypassIdleTimer = BypassIdleTimer()
+    private var savedRescuePhrase = RescuePhrase.default
+    private var focusQueryFailurePolicy = FocusQueryFailurePolicy()
     private var monitorTask: Task<Void, Never>?
+    private var focusChangeObserver: DistributedNotificationObserver?
     private var lastFocusRefresh = Date.distantPast
     private var lastUnavailableRetry = Date.distantPast
 
@@ -69,23 +74,40 @@ final class GuardCoordinator: ObservableObject {
 
         do {
             if let storedPhrase = try keychain.read() {
-                rescuePhrase = storedPhrase
+                if let validatedPhrase = RescuePhrase(storedPhrase) {
+                    savedRescuePhrase = validatedPhrase
+                    rescuePhraseDraft = validatedPhrase.value
+                    if storedPhrase != validatedPhrase.value {
+                        try keychain.write(validatedPhrase.value)
+                    }
+                } else {
+                    savedRescuePhrase = .default
+                    rescuePhraseDraft = savedRescuePhrase.value
+                    try keychain.write(savedRescuePhrase.value)
+                    settingsMessage =
+                        "The invalid rescue phrase in Keychain was replaced with “\(savedRescuePhrase.value)”."
+                }
             } else {
-                rescuePhrase = "catguard"
-                try keychain.write(rescuePhrase)
+                try keychain.write(savedRescuePhrase.value)
             }
         } catch {
-            rescuePhrase = "catguard"
-            settingsMessage = error.localizedDescription
+            savedRescuePhrase = .default
+            rescuePhraseDraft = savedRescuePhrase.value
+            settingsMessage =
+                "The rescue phrase could not be read from or updated in Keychain. Using “\(savedRescuePhrase.value)” for this launch. \(error.localizedDescription)"
         }
     }
 
     deinit {
         monitorTask?.cancel()
+        if let focusChangeObserver {
+            DistributedNotificationCenter.default().removeObserver(focusChangeObserver.token)
+        }
     }
 
     func start(requestNotificationAuthorization: Bool) {
         launchAtLogin = loginItem.isEnabled
+        observeFocusChanges()
 
         do {
             try inputGuard.start()
@@ -110,6 +132,7 @@ final class GuardCoordinator: ObservableObject {
     func stop() async {
         monitorTask?.cancel()
         monitorTask = nil
+        stopObservingFocusChanges()
         inputGuard.setInactive()
     }
 
@@ -135,22 +158,19 @@ final class GuardCoordinator: ObservableObject {
     }
 
     func saveRescuePhrase() {
-        let normalized = rescuePhrase.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-        let allowed = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz")
-        guard (4...32).contains(normalized.count),
-            normalized.unicodeScalars.allSatisfy(allowed.contains)
-        else {
+        guard let phrase = RescuePhrase(rescuePhraseDraft) else {
             settingsMessage = "The rescue phrase must contain 4–32 English letters with no spaces."
             return
         }
 
         do {
-            try keychain.write(normalized)
-            rescuePhrase = normalized
+            try keychain.write(phrase.value)
+            savedRescuePhrase = phrase
+            rescuePhraseDraft = phrase.value
             if protectionState == .guarded {
                 inputGuard.setGuarded(
                     circleEnabled: circleEnabled,
-                    rescuePhrase: normalized
+                    rescuePhrase: savedRescuePhrase
                 )
             }
             settingsMessage = "Rescue phrase saved in Keychain."
@@ -204,9 +224,30 @@ final class GuardCoordinator: ObservableObject {
         do {
             enabled = try await FocusGuardIntent.current.isEnabled
         } catch {
-            enabled = false
+            let shouldFailOpen = focusQueryFailurePolicy.recordFailure()
+            focusMonitoringUnavailable = shouldFailOpen
+            if shouldFailOpen {
+                applyFocusState(false)
+                let protectionSummary =
+                    manualArmActive
+                    ? "The manual-arm latch remains in effect."
+                    : "Input is being left active until Focus monitoring recovers."
+                focusMonitoringIssue =
+                    "CatGuard could not determine the Focus state after \(focusQueryFailurePolicy.consecutiveFailures) attempts. \(protectionSummary) \(error.localizedDescription)"
+            } else {
+                focusMonitoringIssue =
+                    "A Focus status check failed. CatGuard is preserving the last known state and will retry. \(error.localizedDescription)"
+            }
+            return
         }
 
+        focusQueryFailurePolicy.recordSuccess()
+        focusMonitoringIssue = nil
+        focusMonitoringUnavailable = false
+        applyFocusState(enabled)
+    }
+
+    private func applyFocusState(_ enabled: Bool) {
         guard enabled != focusActive else { return }
         let transition = activationReasons.setFocusActive(enabled)
         switch transition {
@@ -226,7 +267,7 @@ final class GuardCoordinator: ObservableObject {
             try inputGuard.start()
             inputGuard.setGuarded(
                 circleEnabled: circleEnabled,
-                rescuePhrase: rescuePhrase
+                rescuePhrase: savedRescuePhrase
             )
             protectionState = .guarded
         } catch {
@@ -278,7 +319,7 @@ final class GuardCoordinator: ObservableObject {
             if activationReasons.shouldGuard {
                 inputGuard.setGuarded(
                     circleEnabled: circleEnabled,
-                    rescuePhrase: rescuePhrase
+                    rescuePhrase: savedRescuePhrase
                 )
                 protectionState = .guarded
             } else {
@@ -308,5 +349,25 @@ final class GuardCoordinator: ObservableObject {
     private func recordBypassActivity() {
         guard protectionState.isBypassed else { return }
         bypassIdleTimer.recordActivity(at: Date())
+    }
+
+    private func observeFocusChanges() {
+        guard focusChangeObserver == nil else { return }
+        let token = DistributedNotificationCenter.default().addObserver(
+            forName: FocusGuardIntentNotification.didPerform,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.refreshFocusState()
+            }
+        }
+        focusChangeObserver = DistributedNotificationObserver(token: token)
+    }
+
+    private func stopObservingFocusChanges() {
+        guard let focusChangeObserver else { return }
+        DistributedNotificationCenter.default().removeObserver(focusChangeObserver.token)
+        self.focusChangeObserver = nil
     }
 }

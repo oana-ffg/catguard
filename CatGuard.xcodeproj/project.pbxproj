@@ -23,8 +23,10 @@
 		6787BA545D3E7564DE50330A /* KeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 253EE78F79668B7BA282F082 /* KeychainStore.swift */; };
 		70F6558288A4B552E6EB7A8D /* ServiceManagement.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A55316F5D42AC06D83239452 /* ServiceManagement.framework */; };
 		9587572329B1814FD75171E7 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9017C1DFCFA72FCCE308DEE3 /* Security.framework */; };
+		9ED3FF2D9ECCDE5AF21BAFC5 /* FocusQueryFailurePolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7121EF5DDA02507CA8DBC78 /* FocusQueryFailurePolicy.swift */; };
 		A7D7CD84338B5C010612CBE9 /* LoginItemController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7842018149416EFFC180FB42 /* LoginItemController.swift */; };
 		B382ECA495C689686D66D7D7 /* CatGuardApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BE60F15C526B35CAE524CE3 /* CatGuardApp.swift */; };
+		B9FE531EE2BF3F09AC52A9F4 /* RescuePhrase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090E2616296E86DA23E3F195 /* RescuePhrase.swift */; };
 		C738C515671DC50A63A30FB6 /* ProtectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD9D6E9F0EFFCAE442E7BFDF /* ProtectionState.swift */; };
 		C7CEE8A3E4EB3C0F61D9D25D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A90AF014619CF983F7CAE703 /* Assets.xcassets */; };
 		D9D85DCD30394CD5B00C13DD /* AppIntents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 988C87574EE6B51BE6B5D706 /* AppIntents.framework */; };
@@ -35,6 +37,7 @@
 
 /* Begin PBXFileReference section */
 		01E4131EA7EE8A998EF55147 /* GuardSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardSession.swift; sourceTree = "<group>"; };
+		090E2616296E86DA23E3F195 /* RescuePhrase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RescuePhrase.swift; sourceTree = "<group>"; };
 		0BE60F15C526B35CAE524CE3 /* CatGuardApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CatGuardApp.swift; sourceTree = "<group>"; };
 		0E72276BBD2337B8D5ECED29 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		0FC7D8E12C07197AB04DDF23 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -58,6 +61,7 @@
 		C9E4FCE1FD19AA2654FEA7D3 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
 		D85FC9FE33F264412266DE4F /* PointerCircleDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PointerCircleDetector.swift; sourceTree = "<group>"; };
 		DD9D6E9F0EFFCAE442E7BFDF /* ProtectionState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtectionState.swift; sourceTree = "<group>"; };
+		E7121EF5DDA02507CA8DBC78 /* FocusQueryFailurePolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusQueryFailurePolicy.swift; sourceTree = "<group>"; };
 		E890D753BB19571E13A0B455 /* StatusItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusItemController.swift; sourceTree = "<group>"; };
 		F31BBE8DE4D3A5A27B35FB6C /* CatGuard-AppIcon-1024.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "CatGuard-AppIcon-1024.png"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -136,10 +140,12 @@
 		BD4418A4A457D5A1ABDFBDB1 /* CatGuardCore */ = {
 			isa = PBXGroup;
 			children = (
+				E7121EF5DDA02507CA8DBC78 /* FocusQueryFailurePolicy.swift */,
 				1F2683AC0F4E8FA926BFABA5 /* GuardActivationReasons.swift */,
 				01E4131EA7EE8A998EF55147 /* GuardSession.swift */,
 				AE6F42452A016CB678DB17D6 /* PhysicalKeyLetterMap.swift */,
 				D85FC9FE33F264412266DE4F /* PointerCircleDetector.swift */,
+				090E2616296E86DA23E3F195 /* RescuePhrase.swift */,
 				2C067E22E5DDB45CD77E9796 /* RescueSequenceMatcher.swift */,
 			);
 			path = CatGuardCore;
@@ -199,7 +205,6 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					B9E82A23CA07A8A5E4C47C5C = {
-						DevelopmentTeam = RY297J6VR2;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -243,6 +248,7 @@
 				DB0F852DEE3BF98C918A41CB /* AppDelegate.swift in Sources */,
 				B382ECA495C689686D66D7D7 /* CatGuardApp.swift in Sources */,
 				466113D90813F860ECE5378E /* FocusGuardIntent.swift in Sources */,
+				9ED3FF2D9ECCDE5AF21BAFC5 /* FocusQueryFailurePolicy.swift in Sources */,
 				62E06AE0CE60522703BC0C6A /* GuardActivationReasons.swift in Sources */,
 				1DA08E37635D69842A30DFB1 /* GuardCoordinator.swift in Sources */,
 				3931C111DF2BB438CBAF425F /* GuardSession.swift in Sources */,
@@ -252,6 +258,7 @@
 				46FAF7369E4D9B1AF2F2F2C0 /* PhysicalKeyLetterMap.swift in Sources */,
 				4F018ACFA369E6475DB50094 /* PointerCircleDetector.swift in Sources */,
 				C738C515671DC50A63A30FB6 /* ProtectionState.swift in Sources */,
+				B9FE531EE2BF3F09AC52A9F4 /* RescuePhrase.swift in Sources */,
 				3E30DEA03AE1AAB17D70A05D /* RescueSequenceMatcher.swift in Sources */,
 				5ADAD1FB86D3CC42AA55152C /* SessionNotifier.swift in Sources */,
 				18BC9DA3301D5FCA0204CAF1 /* SettingsView.swift in Sources */,
@@ -298,7 +305,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = RY297J6VR2;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -383,7 +389,6 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = RY297J6VR2;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;

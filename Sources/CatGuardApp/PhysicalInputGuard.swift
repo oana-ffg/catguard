@@ -102,14 +102,14 @@ final class PhysicalInputGuard: @unchecked Sendable {
         CGEvent.tapEnable(tap: tap, enable: true)
     }
 
-    func setGuarded(circleEnabled: Bool, rescuePhrase: String) {
+    func setGuarded(circleEnabled: Bool, rescuePhrase: RescuePhrase) {
         lock.withLock {
             state.isGuarded = true
             state.isBypassed = false
             state.circleEnabled = circleEnabled
             state.circleDetector = PointerCircleDetector()
             state.circleCallbackPending = false
-            state.rescueMatcher = RescueSequenceMatcher(sequence: rescuePhrase)
+            state.rescueMatcher = RescueSequenceMatcher(sequence: rescuePhrase.value)
             state.rescueCallbackPending = false
         }
     }

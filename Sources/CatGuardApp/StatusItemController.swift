@@ -26,7 +26,13 @@ final class StatusItemController: NSObject {
         }
 
         coordinator.$protectionState
-            .sink { [weak self] state in self?.updateAppearance(for: state) }
+            .combineLatest(coordinator.$focusMonitoringUnavailable)
+            .sink { [weak self] state, focusMonitoringUnavailable in
+                self?.updateAppearance(
+                    for: state,
+                    focusMonitoringUnavailable: focusMonitoringUnavailable
+                )
+            }
             .store(in: &cancellables)
     }
 
@@ -35,6 +41,24 @@ final class StatusItemController: NSObject {
         let stateItem = NSMenuItem(title: coordinator.protectionState.label, action: nil, keyEquivalent: "")
         stateItem.isEnabled = false
         menu.addItem(stateItem)
+        if coordinator.focusMonitoringIssue != nil {
+            let title: String
+            if coordinator.focusMonitoringUnavailable {
+                title =
+                    coordinator.manualArmActive
+                    ? "Focus monitoring unavailable — manual arm remains latched"
+                    : "Focus monitoring unavailable — input left active"
+            } else {
+                title = "Focus monitoring retrying — last known state preserved"
+            }
+            let focusIssueItem = NSMenuItem(
+                title: title,
+                action: nil,
+                keyEquivalent: ""
+            )
+            focusIssueItem.isEnabled = false
+            menu.addItem(focusIssueItem)
+        }
         menu.addItem(.separator())
 
         if coordinator.manualArmActive {
@@ -45,6 +69,15 @@ final class StatusItemController: NSObject {
             )
             manualItem.isEnabled = false
             menu.addItem(manualItem)
+            if case .unavailable = coordinator.protectionState {
+                let retryItem = NSMenuItem(
+                    title: "Manual arm remains latched; CatGuard will retry automatically",
+                    action: nil,
+                    keyEquivalent: ""
+                )
+                retryItem.isEnabled = false
+                menu.addItem(retryItem)
+            }
         } else {
             menu.addItem(
                 withTitle: "Arm now — until circle or rescue phrase",
@@ -110,23 +143,37 @@ final class StatusItemController: NSObject {
         NSApp.terminate(nil)
     }
 
-    private func updateAppearance(for state: ProtectionState) {
+    private func updateAppearance(
+        for state: ProtectionState,
+        focusMonitoringUnavailable: Bool
+    ) {
         guard let button = statusItem.button else { return }
         let symbolName: String
         let tintColor: NSColor
-        switch state {
-        case .guarded:
-            symbolName = "lock.fill"
-            tintColor = .systemRed
-        case .inputActive:
-            symbolName = "pawprint.fill"
-            tintColor = .systemGreen
-        case .bypassed:
-            symbolName = "lock.open.fill"
-            tintColor = .systemGreen
-        case .unavailable:
+        if focusMonitoringUnavailable, state != .guarded {
             symbolName = "exclamationmark.triangle.fill"
             tintColor = .systemOrange
+        } else {
+            switch state {
+            case .guarded:
+                symbolName = "lock.fill"
+                tintColor = .systemRed
+            case .inputActive:
+                symbolName = "pawprint.fill"
+                tintColor = .systemGreen
+            case .bypassed:
+                symbolName = "lock.open.fill"
+                tintColor = .systemGreen
+            case .unavailable:
+                symbolName = "exclamationmark.triangle.fill"
+                tintColor = .systemOrange
+            }
+        }
+        let statusDescription: String
+        if focusMonitoringUnavailable {
+            statusDescription = "Focus monitoring unavailable; \(state.label)"
+        } else {
+            statusDescription = state.label
         }
 
         let sizeConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
@@ -134,12 +181,12 @@ final class StatusItemController: NSObject {
         let configuration = sizeConfiguration.applying(colorConfiguration)
         let image = NSImage(
             systemSymbolName: symbolName,
-            accessibilityDescription: "CatGuard: \(state.label)"
+            accessibilityDescription: "CatGuard: \(statusDescription)"
         )?.withSymbolConfiguration(configuration)
         image?.isTemplate = false
         button.image = image
         button.contentTintColor = nil
-        button.toolTip = state.label
-        button.setAccessibilityLabel("CatGuard: \(state.label)")
+        button.toolTip = statusDescription
+        button.setAccessibilityLabel("CatGuard: \(statusDescription)")
     }
 }
