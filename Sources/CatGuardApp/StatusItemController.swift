@@ -27,6 +27,10 @@ final class StatusItemController: NSObject {
 
         coordinator.$protectionState
             .combineLatest(coordinator.$focusMonitoringUnavailable)
+            // Focus polling republishes unchanged values; redraw only when the status changes.
+            .removeDuplicates { previous, current in
+                previous.0 == current.0 && previous.1 == current.1
+            }
             .sink { [weak self] state, focusMonitoringUnavailable in
                 self?.updateAppearance(
                     for: state,
