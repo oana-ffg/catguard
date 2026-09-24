@@ -110,9 +110,10 @@ xcodegen generate
 open CatGuard.xcodeproj
 ```
 
-Add your Apple Account to Xcode and select its Personal Team for the CatGuard
-target. A Team-signed development build enables the App Intent used by Focus
-Filters:
+Add your Apple Account to Xcode, then find your Personal Team ID in Xcode's
+Accounts settings. Set `DEVELOPMENT_TEAM` to that ID in the environment for the
+build command below. Keep the Team ID out of the project file and Git. A
+Team-signed development build enables the App Intent used by Focus Filters:
 
 ```sh
 ./scripts/build-development.sh
