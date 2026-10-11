@@ -36,6 +36,20 @@ timer.
 
 ## State and fail-open behavior
 
+Focus filter `perform()` delivers its populated `isEnabled` value through a
+process-local notification on the main actor. The coordinator applies it before
+`perform()` returns. This application has no intent extension, so the callback
+and coordinator run in the same process.
+
+A serialized Focus monitor queries the current filter on startup and wake, and
+every 30 seconds as reconciliation for a missed callback. A callback resets that
+interval. Query failures retry after two seconds; the first preserves the last
+known state and the second clears Focus activation while preserving a manual
+arm. A newer callback supersedes any in-flight query result or failure. Observer
+registrations are removed on stop or release, and pending queries cannot update
+a stopped monitor. If macOS misses a callback, the fallback observes a Focus
+change on the next check, about 30 seconds later at most plus the query duration.
+
 The app has four visible states:
 
 - **Input active** (green): no activation reason exists and physical input is

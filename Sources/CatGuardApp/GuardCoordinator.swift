@@ -1,5 +1,7 @@
+import AppKit
 import Combine
 import Foundation
+import OSLog
 
 @MainActor
 final class GuardCoordinator: ObservableObject {
@@ -57,10 +59,14 @@ final class GuardCoordinator: ObservableObject {
     private var session = GuardSessionTracker()
     private var bypassIdleTimer = BypassIdleTimer()
     private var savedRescuePhrase = RescuePhrase.default
-    private var focusQueryFailurePolicy = FocusQueryFailurePolicy()
+    private let focusLogger = Logger(subsystem: "com.oanaffg.CatGuard", category: "Focus")
+    private lazy var focusMonitor = FocusStateMonitor(
+        query: { try await FocusGuardIntent.current.isEnabled },
+        onUpdate: { [weak self] update in self?.handleFocusUpdate(update) }
+    )
     private var monitorTask: Task<Void, Never>?
-    private var focusChangeObserver: DistributedNotificationObserver?
-    private var lastFocusRefresh = Date.distantPast
+    private var focusChangeObserver: NotificationObservation?
+    private var wakeObserver: NotificationObservation?
     private var lastUnavailableRetry = Date.distantPast
 
     init(defaults: UserDefaults = .standard, keychain: KeychainStore = KeychainStore()) {
@@ -100,13 +106,12 @@ final class GuardCoordinator: ObservableObject {
 
     deinit {
         monitorTask?.cancel()
-        if let focusChangeObserver {
-            DistributedNotificationCenter.default().removeObserver(focusChangeObserver.token)
-        }
     }
 
     func start(requestNotificationAuthorization: Bool) {
+        guard monitorTask == nil else { return }
         launchAtLogin = loginItem.isEnabled
+        focusMonitor.start()
         observeFocusChanges()
 
         do {
@@ -121,7 +126,7 @@ final class GuardCoordinator: ObservableObject {
 
         monitorTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.refreshFocusStateIfNeeded()
+                await self?.focusMonitor.refreshIfNeeded()
                 self?.retryUnavailableGuardIfNeeded()
                 self?.evaluateBypassIdleTimer()
                 try? await Task.sleep(for: .seconds(1))
@@ -132,6 +137,7 @@ final class GuardCoordinator: ObservableObject {
     func stop() async {
         monitorTask?.cancel()
         monitorTask = nil
+        focusMonitor.stop()
         stopObservingFocusChanges()
         inputGuard.setInactive()
     }
@@ -212,19 +218,13 @@ final class GuardCoordinator: ObservableObject {
         arm()
     }
 
-    private func refreshFocusStateIfNeeded() async {
-        let now = Date()
-        guard now.timeIntervalSince(lastFocusRefresh) >= 2 else { return }
-        lastFocusRefresh = now
-        await refreshFocusState()
-    }
-
-    private func refreshFocusState() async {
-        let enabled: Bool
-        do {
-            enabled = try await FocusGuardIntent.current.isEnabled
-        } catch {
-            let shouldFailOpen = focusQueryFailurePolicy.recordFailure()
+    private func handleFocusUpdate(_ update: FocusStateMonitor.Update) {
+        switch update {
+        case .state(let enabled):
+            focusMonitoringIssue = nil
+            focusMonitoringUnavailable = false
+            applyFocusState(enabled)
+        case .failure(let attempts, let shouldFailOpen, let message):
             focusMonitoringUnavailable = shouldFailOpen
             if shouldFailOpen {
                 applyFocusState(false)
@@ -233,18 +233,12 @@ final class GuardCoordinator: ObservableObject {
                     ? "The manual-arm latch remains in effect."
                     : "Input is being left active until Focus monitoring recovers."
                 focusMonitoringIssue =
-                    "CatGuard could not determine the Focus state after \(focusQueryFailurePolicy.consecutiveFailures) attempts. \(protectionSummary) \(error.localizedDescription)"
+                    "CatGuard could not determine the Focus state after \(attempts) attempts. \(protectionSummary) \(message)"
             } else {
                 focusMonitoringIssue =
-                    "A Focus status check failed. CatGuard is preserving the last known state and will retry. \(error.localizedDescription)"
+                    "A Focus status check failed. CatGuard is preserving the last known state and will retry. \(message)"
             }
-            return
         }
-
-        focusQueryFailurePolicy.recordSuccess()
-        focusMonitoringIssue = nil
-        focusMonitoringUnavailable = false
-        applyFocusState(enabled)
     }
 
     private func applyFocusState(_ enabled: Bool) {
@@ -259,6 +253,7 @@ final class GuardCoordinator: ObservableObject {
         case .unchanged:
             break
         }
+        focusLogger.notice("Focus state changed: active=\(enabled, privacy: .public), protection=\(self.protectionState.label, privacy: .public)")
     }
 
     private func arm() {
@@ -353,21 +348,28 @@ final class GuardCoordinator: ObservableObject {
 
     private func observeFocusChanges() {
         guard focusChangeObserver == nil else { return }
-        let token = DistributedNotificationCenter.default().addObserver(
-            forName: FocusGuardIntentNotification.didPerform,
-            object: nil,
-            queue: .main
-        ) { [weak self] _ in
-            Task { @MainActor [weak self] in
-                await self?.refreshFocusState()
+        focusChangeObserver = NotificationObservation(
+            name: FocusGuardIntentNotification.didPerform
+        ) { [weak self] notification in
+            guard let enabled = notification.userInfo?[FocusGuardIntentNotification.enabledKey] as? Bool else {
+                return
+            }
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.focusLogger.notice("Focus callback: enabled=\(enabled, privacy: .public)")
+                self.focusMonitor.receive(enabled)
             }
         }
-        focusChangeObserver = DistributedNotificationObserver(token: token)
+        wakeObserver = NotificationObservation(
+            center: NSWorkspace.shared.notificationCenter,
+            name: NSWorkspace.didWakeNotification
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in await self?.focusMonitor.refresh() }
+        }
     }
 
     private func stopObservingFocusChanges() {
-        guard let focusChangeObserver else { return }
-        DistributedNotificationCenter.default().removeObserver(focusChangeObserver.token)
-        self.focusChangeObserver = nil
+        focusChangeObserver = nil
+        wakeObserver = nil
     }
 }

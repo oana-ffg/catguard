@@ -3,14 +3,7 @@ import Foundation
 
 enum FocusGuardIntentNotification {
     static let didPerform = Notification.Name("com.oanaffg.CatGuard.focus-filter-did-perform")
-}
-
-final class DistributedNotificationObserver: @unchecked Sendable {
-    let token: NSObjectProtocol
-
-    init(token: NSObjectProtocol) {
-        self.token = token
-    }
+    static let enabledKey = "isEnabled"
 }
 
 struct FocusGuardIntent: SetFocusFilterIntent {
@@ -38,11 +31,17 @@ struct FocusGuardIntent: SetFocusFilterIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        DistributedNotificationCenter.default().postNotificationName(
-            FocusGuardIntentNotification.didPerform,
-            object: nil,
-            deliverImmediately: true
-        )
+        let enabled = isEnabled
+        // This target has no intent extension: perform runs in the app process.
+        // Deliver on the main actor so the coordinator applies the value before
+        // perform returns, without a second system configuration query.
+        await MainActor.run {
+            NotificationCenter.default.post(
+                name: FocusGuardIntentNotification.didPerform,
+                object: nil,
+                userInfo: [FocusGuardIntentNotification.enabledKey: enabled]
+            )
+        }
         return .result()
     }
 }

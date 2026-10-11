@@ -33,6 +33,9 @@ Computer Use events alone.
 ## What it does
 
 - Follows a macOS Focus Filter while running in the background.
+- Applies Focus filter callbacks immediately, checks again on startup and wake,
+  and reconciles the state every 30 seconds if a callback is missed. Failed
+  checks retry every two seconds and retain the existing fail-open policy.
 - Shows a green paw when input is active, a red lock when guarded, a green open
   lock while bypassed, and an orange warning when protection is unavailable.
 - Suppresses physical keyboard key-down, key-up, and modifier events.
