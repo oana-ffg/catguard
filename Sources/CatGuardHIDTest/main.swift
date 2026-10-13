@@ -327,6 +327,7 @@ private func trackpadValueCallback(
 }
 
 private final class EventTapProbe {
+    var eventTap: CFMachPort?
     private var suppressPhysicalEvents: Bool
     private(set) var eventCount = 0
     private var sourceCounts: [Int64: Int] = [:]
@@ -381,7 +382,7 @@ private final class EventTapProbe {
         return suppressPhysicalEvents && sourcePID == 0
     }
 
-    func printSummary() {
+    func printSummary() throws {
         let sources =
             sourceCounts
             .sorted { $0.key < $1.key }
@@ -391,7 +392,7 @@ private final class EventTapProbe {
             "EVENT_TAP_COUNTS events=\(eventCount) sources=\(sources) circleDetected=\(circleDetected) suppressionActive=\(suppressPhysicalEvents)"
         print(summary)
         let summaryPath = "/tmp/catguard-event-tap-summary.log"
-        try? summary.write(toFile: summaryPath, atomically: true, encoding: .utf8)
+        try summary.write(toFile: summaryPath, atomically: true, encoding: .utf8)
         print("EVENT_TAP_SUMMARY_PATH \(summaryPath)")
     }
 
@@ -411,17 +412,16 @@ private func eventTapCallback(
     event: CGEvent,
     userInfo: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
-    guard type != .tapDisabledByTimeout,
-        type != .tapDisabledByUserInput,
-        let userInfo
-    else {
+    guard let userInfo else { return Unmanaged.passUnretained(event) }
+    let probe = Unmanaged<EventTapProbe>.fromOpaque(userInfo).takeUnretainedValue()
+    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        if let tap = probe.eventTap {
+            CGEvent.tapEnable(tap: tap, enable: true)
+        }
         return Unmanaged.passUnretained(event)
     }
 
-    let shouldSuppress = Unmanaged<EventTapProbe>
-        .fromOpaque(userInfo)
-        .takeUnretainedValue()
-        .observe(type: type, event: event)
+    let shouldSuppress = probe.observe(type: type, event: event)
     if shouldSuppress {
         return nil
     }
@@ -497,6 +497,7 @@ private func probeEventTap(duration: TimeInterval, suppressPhysicalEvents: Bool)
         throw HIDTestError.noTrackpadReports
     }
 
+    probe.eventTap = tap
     let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
     CFRunLoopAddSource(CFRunLoopGetMain(), source, .defaultMode)
     CGEvent.tapEnable(tap: tap, enable: true)
@@ -506,7 +507,8 @@ private func probeEventTap(duration: TimeInterval, suppressPhysicalEvents: Bool)
     CFRunLoopRunInMode(.defaultMode, duration, false)
     CGEvent.tapEnable(tap: tap, enable: false)
     CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .defaultMode)
-    probe.printSummary()
+    probe.eventTap = nil
+    try probe.printSummary()
     print("EVENT_TAP_PROBE_COMPLETE")
     fflush(stdout)
 }
