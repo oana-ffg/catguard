@@ -19,6 +19,9 @@ jobs:
       - name: Test Swift package
         run: swift test
 
+      - name: Check circle-detector operation budget
+        run: python3 scripts/check-runtime-costs.py --check
+
       - name: Build app without signing
         run: >-
           xcodebuild -quiet
