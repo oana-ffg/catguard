@@ -35,6 +35,7 @@
 		DA3910EB555179419FE85BDA /* PhysicalInputGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2871B7D68E82DBD9E546089 /* PhysicalInputGuard.swift */; };
 		DB0F852DEE3BF98C918A41CB /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A84C982869F4F342BDDB97B2 /* AppDelegate.swift */; };
 		E109A0A4ECE5FFBC11C9D72A /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 50B5248F6988127543478CC4 /* AppKit.framework */; };
+		E612CEDC812F597C8EAF2543 /* GuardMaintenanceScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F20330E0484FFB5FC4BBBC6 /* GuardMaintenanceScheduler.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +52,7 @@
 		4303F57CAC48DA81FDEB0447 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		50B5248F6988127543478CC4 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		7842018149416EFFC180FB42 /* LoginItemController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginItemController.swift; sourceTree = "<group>"; };
+		7F20330E0484FFB5FC4BBBC6 /* GuardMaintenanceScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuardMaintenanceScheduler.swift; sourceTree = "<group>"; };
 		9017C1DFCFA72FCCE308DEE3 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		988C87574EE6B51BE6B5D706 /* AppIntents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppIntents.framework; path = System/Library/Frameworks/AppIntents.framework; sourceTree = SDKROOT; };
 		A2871B7D68E82DBD9E546089 /* PhysicalInputGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhysicalInputGuard.swift; sourceTree = "<group>"; };
@@ -148,6 +150,7 @@
 				E7121EF5DDA02507CA8DBC78 /* FocusQueryFailurePolicy.swift */,
 				A5B6AA7FFF0BCF40B8231127 /* FocusStateMonitor.swift */,
 				1F2683AC0F4E8FA926BFABA5 /* GuardActivationReasons.swift */,
+				7F20330E0484FFB5FC4BBBC6 /* GuardMaintenanceScheduler.swift */,
 				01E4131EA7EE8A998EF55147 /* GuardSession.swift */,
 				AE6F42452A016CB678DB17D6 /* PhysicalKeyLetterMap.swift */,
 				D85FC9FE33F264412266DE4F /* PointerCircleDetector.swift */,
@@ -258,6 +261,7 @@
 				6FFC7127538F84710B5BA5B6 /* FocusStateMonitor.swift in Sources */,
 				62E06AE0CE60522703BC0C6A /* GuardActivationReasons.swift in Sources */,
 				1DA08E37635D69842A30DFB1 /* GuardCoordinator.swift in Sources */,
+				E612CEDC812F597C8EAF2543 /* GuardMaintenanceScheduler.swift in Sources */,
 				3931C111DF2BB438CBAF425F /* GuardSession.swift in Sources */,
 				6787BA545D3E7564DE50330A /* KeychainStore.swift in Sources */,
 				A7D7CD84338B5C010612CBE9 /* LoginItemController.swift in Sources */,

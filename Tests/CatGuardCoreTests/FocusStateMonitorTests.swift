@@ -66,6 +66,7 @@ struct FocusStateMonitorTests {
         monitor.start()
         let refresh = Task { await monitor.refreshIfNeeded() }
         await query.waitUntilRequested()
+        #expect(monitor.nextRefreshDelay == nil)
         monitor.receive(true)
         monitor.receive(false)
         await monitor.refreshIfNeeded()
@@ -83,6 +84,7 @@ struct FocusStateMonitorTests {
         monitor.start()
         let refresh = Task { await monitor.refresh() }
         await query.waitUntilRequested()
+        #expect(monitor.nextRefreshDelay == nil)
         monitor.receive(true)
         query.complete(.failure(FocusTestError.unavailable))
         await refresh.value
@@ -176,4 +178,27 @@ private final class SuspendedFocusQuery {
         pending = nil
         continuation?.resume(with: result)
     }
+}
+
+@MainActor
+@Test("Refresh deadlines reflect callbacks, failures, in-flight queries and stop")
+func focusRefreshDeadlines() async {
+    let harness = FocusMonitorHarness()
+    #expect(harness.monitor.nextRefreshDelay == nil)
+    harness.monitor.start()
+    #expect(harness.monitor.nextRefreshDelay == 0)
+    await harness.monitor.refreshIfNeeded()
+    #expect(harness.monitor.nextRefreshDelay == 30)
+    harness.time = 29
+    #expect(harness.monitor.nextRefreshDelay == 1)
+    harness.monitor.receive(true)
+    #expect(harness.monitor.nextRefreshDelay == 30)
+    harness.time = 60
+    harness.result = .failure(FocusTestError.unavailable)
+    await harness.monitor.refreshIfNeeded()
+    #expect(harness.monitor.nextRefreshDelay == 2)
+    harness.time = 61
+    #expect(harness.monitor.nextRefreshDelay == 1)
+    harness.monitor.stop()
+    #expect(harness.monitor.nextRefreshDelay == nil)
 }

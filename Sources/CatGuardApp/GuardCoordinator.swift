@@ -5,7 +5,11 @@ import OSLog
 
 @MainActor
 final class GuardCoordinator: ObservableObject {
-    @Published private(set) var protectionState: ProtectionState = .inputActive
+    @Published private(set) var protectionState: ProtectionState = .inputActive {
+        didSet {
+            if protectionState != oldValue { scheduleMaintenance() }
+        }
+    }
     @Published private var activationReasons = GuardActivationReasons()
     @Published private(set) var launchAtLogin = false
     @Published var circleEnabled: Bool {
@@ -64,7 +68,8 @@ final class GuardCoordinator: ObservableObject {
         query: { try await FocusGuardIntent.current.isEnabled },
         onUpdate: { [weak self] update in self?.handleFocusUpdate(update) }
     )
-    private var monitorTask: Task<Void, Never>?
+    private let maintenance = GuardMaintenanceScheduler()
+    private var isRunning = false
     private var focusChangeObserver: NotificationObservation?
     private var wakeObserver: NotificationObservation?
     private var lastUnavailableRetry = Date.distantPast
@@ -104,12 +109,9 @@ final class GuardCoordinator: ObservableObject {
         }
     }
 
-    deinit {
-        monitorTask?.cancel()
-    }
-
     func start(requestNotificationAuthorization: Bool) {
-        guard monitorTask == nil else { return }
+        guard !isRunning else { return }
+        isRunning = true
         launchAtLogin = loginItem.isEnabled
         focusMonitor.start()
         observeFocusChanges()
@@ -124,19 +126,33 @@ final class GuardCoordinator: ObservableObject {
             await self?.prepareNotifications(requestAuthorizationIfNeeded: requestNotificationAuthorization)
         }
 
-        monitorTask = Task { [weak self] in
-            while !Task.isCancelled {
-                await self?.focusMonitor.refreshIfNeeded()
-                self?.retryUnavailableGuardIfNeeded()
-                self?.evaluateBypassIdleTimer()
-                try? await Task.sleep(for: .seconds(1))
-            }
+        scheduleMaintenance()
+    }
+
+    private func scheduleMaintenance() {
+        guard isRunning else { return }
+        let retryDelay: TimeInterval?
+        if case .unavailable = protectionState {
+            retryDelay = max(0, 10 - Date().timeIntervalSince(lastUnavailableRetry))
+        } else {
+            retryDelay = nil
+        }
+        maintenance.schedule(
+            focusRefreshDelay: focusMonitor.nextRefreshDelay,
+            guardRetryDelay: retryDelay,
+            isBypassed: protectionState.isBypassed
+        ) { [weak self] in
+            guard let self, self.isRunning else { return }
+            self.retryUnavailableGuardIfNeeded()
+            self.evaluateBypassIdleTimer()
+            await self.focusMonitor.refreshIfNeeded()
+            self.scheduleMaintenance()
         }
     }
 
     func stop() async {
-        monitorTask?.cancel()
-        monitorTask = nil
+        isRunning = false
+        maintenance.cancel()
         focusMonitor.stop()
         stopObservingFocusChanges()
         inputGuard.setInactive()
@@ -219,6 +235,7 @@ final class GuardCoordinator: ObservableObject {
     }
 
     private func handleFocusUpdate(_ update: FocusStateMonitor.Update) {
+        defer { scheduleMaintenance() }
         switch update {
         case .state(let enabled):
             focusMonitoringIssue = nil
@@ -364,7 +381,11 @@ final class GuardCoordinator: ObservableObject {
             center: NSWorkspace.shared.notificationCenter,
             name: NSWorkspace.didWakeNotification
         ) { [weak self] _ in
-            Task { @MainActor [weak self] in await self?.focusMonitor.refresh() }
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                await self.focusMonitor.refresh()
+                self.scheduleMaintenance()
+            }
         }
     }
 

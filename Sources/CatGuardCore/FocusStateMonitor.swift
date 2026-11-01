@@ -59,10 +59,16 @@ final class FocusStateMonitor {
         onUpdate(.state(enabled))
     }
 
-    func refreshIfNeeded() async {
-        guard isRunning, activeQueryID == nil else { return }
+    /// No timer is needed while stopped or while a query owns the next update.
+    var nextRefreshDelay: TimeInterval? {
+        guard isRunning, activeQueryID == nil else { return nil }
         let interval = failurePolicy.consecutiveFailures == 0 ? reconciliationInterval : retryInterval
-        if let lastRefresh, now() - lastRefresh < interval { return }
+        guard let lastRefresh else { return 0 }
+        return max(0, interval - (now() - lastRefresh))
+    }
+
+    func refreshIfNeeded() async {
+        guard nextRefreshDelay == 0 else { return }
         await refresh()
     }
 
