@@ -47,11 +47,10 @@ struct FocusStateMonitorTests {
         harness.time = 2
         await harness.monitor.refreshIfNeeded()
         #expect(harness.queryCount == 2)
-        #expect(
-            harness.updates == [
-                .failure(attempts: 1, shouldFailOpen: false, message: "Test query unavailable"),
-                .failure(attempts: 2, shouldFailOpen: true, message: "Test query unavailable"),
-            ])
+        #expect(harness.updates == [
+            .failure(attempts: 1, shouldFailOpen: false, message: "Test query unavailable"),
+            .failure(attempts: 2, shouldFailOpen: true, message: "Test query unavailable"),
+        ])
         harness.monitor.receive(true)
         harness.time = 4
         await harness.monitor.refreshIfNeeded()

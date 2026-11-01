@@ -105,12 +105,11 @@ final class FocusStateMonitor {
                     onUpdate(.state(enabled))
                 case .failure(let error):
                     let shouldFailOpen = failurePolicy.recordFailure()
-                    onUpdate(
-                        .failure(
-                            attempts: failurePolicy.consecutiveFailures,
-                            shouldFailOpen: shouldFailOpen,
-                            message: error.localizedDescription
-                        ))
+                    onUpdate(.failure(
+                        attempts: failurePolicy.consecutiveFailures,
+                        shouldFailOpen: shouldFailOpen,
+                        message: error.localizedDescription
+                    ))
                 }
             }
         } while refreshAfterQuery

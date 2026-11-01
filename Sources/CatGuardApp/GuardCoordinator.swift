@@ -270,9 +270,7 @@ final class GuardCoordinator: ObservableObject {
         case .unchanged:
             break
         }
-        focusLogger.notice(
-            "Focus state changed: active=\(enabled, privacy: .public), protection=\(self.protectionState.label, privacy: .public)"
-        )
+        focusLogger.notice("Focus state changed: active=\(enabled, privacy: .public), protection=\(self.protectionState.label, privacy: .public)")
     }
 
     private func arm() {

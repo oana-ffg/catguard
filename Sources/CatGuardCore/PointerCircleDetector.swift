@@ -65,95 +65,8 @@ public struct PointerCircleDetector: Sendable {
         let timestamp: TimeInterval
     }
 
-    /// Two aggregate stacks form a FIFO window. Each sample is pushed,
-    /// transferred and removed once, instead of rescanning the window per event.
-    private struct PathSummary: Sendable {
-        let first: Sample
-        let last: Sample
-        let count: Int
-        let minimumX: Double
-        let maximumX: Double
-        let minimumY: Double
-        let maximumY: Double
-        let pathLength: Double
-        let twiceSignedArea: Double
-
-        init(_ sample: Sample) {
-            first = sample
-            last = sample
-            count = 1
-            minimumX = sample.x
-            maximumX = sample.x
-            minimumY = sample.y
-            maximumY = sample.y
-            pathLength = 0
-            twiceSignedArea = 0
-        }
-
-        private init(first: PathSummary, second: PathSummary) {
-            self.first = first.first
-            last = second.last
-            count = first.count + second.count
-            minimumX = min(first.minimumX, second.minimumX)
-            maximumX = max(first.maximumX, second.maximumX)
-            minimumY = min(first.minimumY, second.minimumY)
-            maximumY = max(first.maximumY, second.maximumY)
-            pathLength =
-                first.pathLength + second.pathLength
-                + hypot(second.first.x - first.last.x, second.first.y - first.last.y)
-            twiceSignedArea =
-                first.twiceSignedArea + second.twiceSignedArea
-                + first.last.x * second.first.y - second.first.x * first.last.y
-        }
-
-        func followed(by other: PathSummary) -> PathSummary {
-            PathSummary(first: self, second: other)
-        }
-    }
-
-    private struct PathWindow: Sendable {
-        // The oldest sample is at outgoing.last. Incoming is in arrival order.
-        private var incoming: [PathSummary] = []
-        private var outgoing: [PathSummary] = []
-
-        var summary: PathSummary? {
-            switch (outgoing.last, incoming.last) {
-            case (.some(let first), .some(let second)): first.followed(by: second)
-            case (.some(let summary), .none), (.none, .some(let summary)): summary
-            case (.none, .none): nil
-            }
-        }
-
-        var isEmpty: Bool { incoming.isEmpty && outgoing.isEmpty }
-
-        mutating func append(_ sample: Sample) {
-            let next = PathSummary(sample)
-            incoming.append(incoming.last.map { $0.followed(by: next) } ?? next)
-        }
-
-        mutating func discard(before cutoff: TimeInterval) {
-            while true {
-                if outgoing.isEmpty {
-                    // Reverse once when the FIFO's front runs out. The new
-                    // summaries exclude samples as they expire from the front.
-                    while let entry = incoming.popLast() {
-                        let next = PathSummary(entry.last)
-                        outgoing.append(outgoing.last.map { next.followed(by: $0) } ?? next)
-                    }
-                }
-                guard let first = outgoing.last, first.first.timestamp < cutoff else { return }
-                outgoing.removeLast()
-            }
-        }
-
-        mutating func removeAll() {
-            incoming.removeAll(keepingCapacity: true)
-            outgoing.removeAll(keepingCapacity: true)
-        }
-    }
-
     private let configuration: Configuration
-    private var samples = PathWindow()
+    private var samples: [Sample] = []
     private var currentX = 0.0
     private var currentY = 0.0
     private var lastMotionAt: TimeInterval?
@@ -206,17 +119,37 @@ public struct PointerCircleDetector: Sendable {
     }
 
     private mutating func discardExpiredSamples(at timestamp: TimeInterval) {
-        samples.discard(before: timestamp - configuration.maximumDuration)
+        let cutoff = timestamp - configuration.maximumDuration
+        if let firstValidIndex = samples.firstIndex(where: { $0.timestamp >= cutoff }),
+            firstValidIndex > 0
+        {
+            samples.removeFirst(firstValidIndex)
+        }
     }
 
     private func calculateMetrics() -> Metrics? {
-        guard let path = samples.summary, path.count >= 3 else { return nil }
-        let first = path.first
-        let last = path.last
-        let width = path.maximumX - path.minimumX
-        let height = path.maximumY - path.minimumY
+        guard samples.count >= 3,
+            let first = samples.first,
+            let last = samples.last
+        else {
+            return nil
+        }
+
+        let minimumX = samples.lazy.map(\.x).min() ?? 0
+        let maximumX = samples.lazy.map(\.x).max() ?? 0
+        let minimumY = samples.lazy.map(\.y).min() ?? 0
+        let maximumY = samples.lazy.map(\.y).max() ?? 0
+        let width = maximumX - minimumX
+        let height = maximumY - minimumY
         guard width > 0, height > 0 else { return nil }
-        let twiceSignedArea = path.twiceSignedArea + last.x * first.y - first.x * last.y
+
+        var pathLength = 0.0
+        var twiceSignedArea = 0.0
+        for (start, end) in zip(samples, samples.dropFirst()) {
+            pathLength += hypot(end.x - start.x, end.y - start.y)
+            twiceSignedArea += start.x * end.y - end.x * start.y
+        }
+        twiceSignedArea += last.x * first.y - first.x * last.y
 
         let closureDistance = hypot(last.x - first.x, last.y - first.y)
         let smallerSpan = min(width, height)
@@ -224,18 +157,18 @@ public struct PointerCircleDetector: Sendable {
         let spanSum = width + height
 
         return Metrics(
-            sampleCount: path.count,
+            sampleCount: samples.count,
             duration: last.timestamp - first.timestamp,
             width: width,
             height: height,
             closureRatio: closureDistance / smallerSpan,
             areaRatio: abs(twiceSignedArea) / 2 / boundingArea,
-            pathRatio: path.pathLength / spanSum
+            pathRatio: pathLength / spanSum
         )
     }
 
     private mutating func resetPath() {
-        samples.removeAll()
+        samples.removeAll(keepingCapacity: true)
         currentX = 0
         currentY = 0
         lastMotionAt = nil
