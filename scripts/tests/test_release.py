@@ -49,6 +49,28 @@ class ReleaseGuards(unittest.TestCase):
             self.assertEqual(enclosure.attrib[f"{{{release.SPARKLE_NS}}}edSignature"], "public-signature")
             self.assertEqual(enclosure.attrib["url"], "https://github.com/oana-ffg/catguard/releases/download/v0.2.0/CatGuard-0.2.0.zip")
 
+    def test_partially_attached_credential_image_is_detached_before_trashing(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            with patch.object(macos_signing, "attached_image_device", side_effect=["/dev/disk999", None]), \
+                 patch.object(macos_signing, "run") as run, \
+                 patch.object(macos_signing, "trash") as trash, \
+                 patch.object(macos_signing.os.path, "ismount", return_value=False):
+                macos_signing.remove_notary_container(root, root / "mount", root / "mount/key.p8")
+                run.assert_called_once_with("hdiutil", "detach", "/dev/disk999", timeout=30)
+                trash.assert_called_once_with(root)
+
+    def test_failed_detach_retains_credential_container_and_surfaces_error(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            with patch.object(macos_signing, "attached_image_device", return_value="/dev/disk999"), \
+                 patch.object(macos_signing, "run", side_effect=ValueError("detach failed")) as run, \
+                 patch.object(macos_signing, "trash") as trash:
+                with self.assertRaisesRegex(ValueError, "detach failed"):
+                    macos_signing.remove_notary_container(root, root / "mount", root / "mount/key.p8")
+                self.assertEqual(run.call_count, 2)
+                trash.assert_not_called()
+
     def test_credential_cleanup_failure_retains_original_error(self):
         def failed_cleanup():
             raise OSError("detach failed")

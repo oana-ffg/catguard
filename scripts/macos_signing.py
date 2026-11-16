@@ -3,12 +3,12 @@
 from contextlib import contextmanager
 import hashlib
 import json
+import plistlib
 import os
 from pathlib import Path
 import re
 import secrets
 import shlex
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -18,13 +18,23 @@ TEMP_ROOT = Path("/Volumes/Kingston/bottemp/workspaces")
 
 
 def trash(path):
-    destination = Path.home() / ".Trash" / (path.name + "-" + secrets.token_hex(8))
-    shutil.move(str(path), destination)
+    path = path.resolve()
+    if TEMP_ROOT not in path.parents:
+        raise ValueError("Cleanup refuses a path outside the owned temporary workspace")
+    # Use the originating volume's Trash. Moving to ~/.Trash would copy builds
+    # from Kingston onto the internal disk and needlessly consume local space.
+    trash_root = TEMP_ROOT.parents[1] / ".Trashes" / str(os.getuid())
+    if not trash_root.is_dir() or trash_root.stat().st_dev != path.stat().st_dev:
+        raise ValueError(f"Same-volume Trash is unavailable; retained temporary path: {path}")
+    destination = trash_root / (path.name + "-" + secrets.token_hex(8))
+    if destination.exists():
+        raise ValueError("Refusing to replace an existing Trash item")
+    path.rename(destination)
 
 
-def run(*args, data=None, sensitive=False, pass_fds=(), env=None):
+def run(*args, data=None, sensitive=False, pass_fds=(), env=None, timeout=None):
     result = subprocess.run([str(a) for a in args], input=data, capture_output=True,
-                            pass_fds=pass_fds, env=env, cwd=ROOT)
+                            pass_fds=pass_fds, env=env, cwd=ROOT, timeout=timeout)
     if result.returncode:
         detail = "" if sensitive else result.stderr.decode(errors="replace").strip()
         raise ValueError(f"{Path(args[0]).name} failed (exit {result.returncode})" +
@@ -70,7 +80,7 @@ def cleanup_preserving_error(action):
     original = sys.exc_info()[1]
     try:
         action()
-    except (ValueError, OSError) as error:
+    except (ValueError, OSError, subprocess.SubprocessError) as error:
         prefix = f"{original}; " if original else ""
         raise ValueError(f"{prefix}credential cleanup failed: {error}") from error
 
@@ -79,10 +89,10 @@ def remove_keychain(root, keychain):
     if keychain.exists():
         try:
             run("/usr/bin/security", "delete-keychain", keychain)
-        except (ValueError, OSError) as error:
+        except (ValueError, OSError, subprocess.SubprocessError) as error:
             try:
                 run("/usr/bin/security", "lock-keychain", keychain)
-            except (ValueError, OSError) as lock_error:
+            except (ValueError, OSError, subprocess.SubprocessError) as lock_error:
                 raise ValueError(f"{error}; could not lock retained keychain: {lock_error}") from error
             raise
         if keychain.exists():
@@ -185,27 +195,40 @@ def notary_credentials(entry):
     return value, key
 
 
+def attached_image_device(image):
+    info = plistlib.loads(run("hdiutil", "info", "-plist", timeout=30))
+    for attached in info.get("images", []):
+        if Path(attached.get("image-path", "")).resolve() == image.resolve():
+            entities = attached.get("system-entities", [])
+            devices = [entity["dev-entry"] for entity in entities if "dev-entry" in entity]
+            if not devices:
+                raise ValueError("Owned credential image is attached without a device identifier")
+            return devices[0]
+    return None
+
+
 def remove_notary_container(root, mount, path):
     failures = []
     try:
         path.unlink(missing_ok=True)
     except OSError as error:
         failures.append(str(error))
-    if os.path.ismount(mount):
-        try:
-            run("/usr/bin/hdiutil", "detach", mount)
-        except (ValueError, OSError) as error:
+    image = root / "credential.dmg"
+    # A failed attach can leave an unmounted device. Detach by the device whose
+    # exact image path we own, not only by the existence of a mounted directory.
+    try:
+        device = attached_image_device(image)
+        if device:
             try:
-                run("/usr/bin/hdiutil", "detach", "-force", mount)
-            except (ValueError, OSError) as force_error:
-                failures.append(f"{error}; forced detach also failed: {force_error}")
-    if not os.path.ismount(mount):
-        try:
+                run("hdiutil", "detach", device, timeout=30)
+            except (ValueError, OSError, subprocess.SubprocessError):
+                run("hdiutil", "detach", "-force", device, timeout=30)
+        if attached_image_device(image) or os.path.ismount(mount):
+            failures.append(f"Credential image remains attached: {image}")
+        elif not failures:
             trash(root)
-        except OSError as error:
-            failures.append(str(error))
-    else:
-        failures.append(f"Credential volume remains mounted: {mount}")
+    except (ValueError, OSError, subprocess.SubprocessError) as error:
+        failures.append(str(error))
     if failures:
         raise ValueError("; ".join(failures))
 
@@ -217,15 +240,18 @@ def notary_command(entry, *args):
     # lives only inside a disposable AES-256 image, never on an unencrypted disk.
     root = Path(tempfile.mkdtemp(prefix="catguard-notary-", dir=TEMP_ROOT))
     image = root / "credential.dmg"
-    mount = root / "mounted"
+    # The encrypted backing image is on Kingston; macOS requires its mountpoint
+    # in the standard /Volumes namespace rather than nested on another volume.
+    mount = Path("/Volumes") / root.name
     path = mount / "credential.p8"
-    password = secrets.token_urlsafe(48).encode() + b"\n"
+    password = secrets.token_urlsafe(48).encode() + b"\0"
     try:
-        run("/usr/sbin/diskutil", "image", "create", "blank", "--encrypt", "--stdinpassphrase",
-            "--size", "64m", "--volumeName", "CatGuardNotary", image, data=password, sensitive=True)
+        run("/usr/bin/hdiutil", "create", "-size", "64m", "-fs", "HFS+",
+            "-volname", root.name, "-encryption", "AES-256", "-stdinpass", image,
+            data=password, sensitive=True, timeout=60)
         image.chmod(0o600)
-        run("/usr/sbin/diskutil", "image", "attach", "--stdinpassphrase", "--nobrowse",
-            "--mountPoint", mount, image, data=password, sensitive=True)
+        run("/usr/bin/hdiutil", "attach", "-stdinpass", "-nobrowse",
+            "-mountpoint", mount, image, data=password, sensitive=True, timeout=60)
         if not os.path.ismount(mount):
             raise ValueError("Encrypted notary volume was not mounted")
         mount.chmod(0o700)

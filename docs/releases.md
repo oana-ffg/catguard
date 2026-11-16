@@ -29,9 +29,12 @@ PKCS#12 imports into an owned temporary encrypted Keychain; password-bearing
 commands use stdin. The notary private key exists only in memory and an
 owner-only mounted AES-256 credential image because notarytool requires a regular
 file. It is removed before detaching. Cleanup retries detach, surfaces failures,
-and moves owned temporary containers to Trash. SIGTERM/SIGHUP trigger cleanup;
+and moves owned temporary containers to Kingston's own Trash. SIGTERM/SIGHUP trigger cleanup;
 SIGKILL or power loss cannot. Inspect only the interrupted run's owned containers
-before retrying. Temporary work lives under `/Volumes/Kingston/bottemp/workspaces`.
+before retrying. Temporary work and encrypted backing images live under
+`/Volumes/Kingston/bottemp/workspaces`. Encrypted credential volumes mount
+owner-only at a unique `/Volumes/catguard-notary-…` path; nesting a mountpoint
+on Kingston is rejected by macOS.
 No release step reads or changes the user's rescue phrase, login settings or
 privacy grants, and no CatGuard build is launched.
 
