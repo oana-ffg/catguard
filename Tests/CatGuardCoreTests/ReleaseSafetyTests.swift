@@ -84,7 +84,11 @@ struct ReleaseSafetyTests {
         // A new activation before termination must still cancel quitting.
         gate.protectionRequested = true
         #expect(gate.shouldDeferTermination)
-        gate.clear()
+        // An aborted Sparkle driver is not proof that its separate installer
+        // has stopped. A staged update keeps the quit safeguard for this run.
+        gate.markInstallationPending()
+        #expect(gate.shouldDeferTermination)
+        gate.protectionRequested = false
         #expect(!gate.shouldDeferTermination)
     }
 }

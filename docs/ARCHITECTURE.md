@@ -101,7 +101,9 @@ either activation reason exists, even during bypass or an unavailable tap, or
 while Focus state is unknown. The updater retains its installation continuation
 until safe. App termination rechecks the gate to cover a new activation between
 continuation and quit, including Sparkle paths that skip the postpone callback.
-If an update is staged, quitting while armed is deferred with a visible Settings
+Staging marks the gate before installation. Sparkle aborts can leave a separate
+installer alive, so the termination safeguard remains for the process lifetime,
+even after an update error. If an update is staged, quitting while armed is deferred with a visible Settings
 message; deactivate Focus and clear manual arm first. A forced process exit still
 fails open. Reviewers should verify these boundaries, the PID filter, and the
 absence of persistence or transmission of input contents on every release.

@@ -37,8 +37,22 @@ final class UpdateController: NSObject, @preconcurrency SPUUpdaterDelegate {
         return true
     }
 
+    func updater(_ updater: SPUUpdater, didExtractUpdate item: SUAppcastItem) {
+        gate.markInstallationPending()
+    }
+
+    func updater(_ updater: SPUUpdater, willInstallUpdate item: SUAppcastItem) {
+        gate.markInstallationPending()
+    }
+
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
-        gate.clear()
+        let updateError = error as NSError
+        // Sparkle reports these normal outcomes through the same abort callback.
+        if updateError.domain == SUSparkleErrorDomain,
+           updateError.code == SUError.noUpdateError.rawValue
+            || updateError.code == SUError.installationCanceledError.rawValue {
+            return
+        }
         onError?("Update failed: \(error.localizedDescription)")
     }
 }

@@ -10,8 +10,12 @@ final class UpdateInstallationGate {
     var canInstall: Bool { focusStateKnown && !protectionRequested }
     var shouldDeferTermination: Bool { installationPending && !canInstall }
 
+    // Sparkle can leave its separate installer waiting after a driver abort.
+    // Once staged, keep the termination safeguard for this process lifetime.
+    func markInstallationPending() { installationPending = true }
+
     func deferInstallation(_ resume: @escaping () -> Void) {
-        installationPending = true
+        markInstallationPending()
         resumeInstallation = resume
     }
 
@@ -21,8 +25,4 @@ final class UpdateInstallationGate {
         resume()
     }
 
-    func clear() {
-        installationPending = false
-        resumeInstallation = nil
-    }
 }
