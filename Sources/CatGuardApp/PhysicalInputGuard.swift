@@ -92,7 +92,7 @@ final class PhysicalInputGuard: @unchecked Sendable {
         try checkHealth()
     }
 
-    /// Non-prompting probes; called every five seconds and after a disabled callback.
+    /// Non-prompting probes; called by the coordinator health timer and after a disabled callback.
     func checkHealth() throws {
         try EventTapHealthCheck.validate(
             listenAccess: CGPreflightListenEventAccess(),

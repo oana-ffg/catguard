@@ -7,7 +7,10 @@ import OSLog
 final class GuardCoordinator: ObservableObject {
     @Published private(set) var protectionState: ProtectionState = .inputActive {
         didSet {
-            if protectionState != oldValue { scheduleMaintenance() }
+            if protectionState != oldValue {
+                scheduleMaintenance()
+                updateHealthTimer()
+            }
         }
     }
     @Published private var activationReasons = GuardActivationReasons()
@@ -79,6 +82,7 @@ final class GuardCoordinator: ObservableObject {
     let updateGate = UpdateInstallationGate()
     var onUpdateSafetyChanged: (() -> Void)?
     private var healthTimer: Timer?
+    private static let healthCheckInterval: TimeInterval = 30
     private var lastUnavailableRetry = Date.distantPast
 
     init(defaults: UserDefaults = .standard, keychain: KeychainStore = KeychainStore()) {
@@ -119,27 +123,46 @@ final class GuardCoordinator: ObservableObject {
         focusMonitor.start()
         observeFocusChanges()
 
-        do {
-            guard rescuePhraseIssue == nil else { throw RescuePhraseLoader.LoadError.invalidPhrase }
-            try inputGuard.start()
-        } catch {
-            protectionState = .unavailable(error.localizedDescription)
+        if let rescuePhraseIssue {
+            protectionState = .unavailable(rescuePhraseIssue)
+        } else {
+            do {
+                try inputGuard.start()
+            } catch {
+                protectionState = .unavailable(error.localizedDescription)
+            }
         }
 
         Task { [weak self] in
             await self?.prepareNotifications(requestAuthorizationIfNeeded: requestNotificationAuthorization)
         }
 
-        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+        updateHealthTimer()
+        scheduleMaintenance()
+    }
+
+    /// Independent of the maintenance scheduler, which waits on Focus queries.
+    /// Runs only while the tap is supposed to guard, or is being retried.
+    private func updateHealthTimer() {
+        let needed: Bool
+        switch protectionState {
+        case .guarded, .unavailable: needed = isRunning
+        default: needed = false
+        }
+        guard needed != (healthTimer != nil) else { return }
+        healthTimer?.invalidate()
+        healthTimer = nil
+        guard needed else { return }
+        let timer = Timer(timeInterval: Self.healthCheckInterval, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self, self.isRunning else { return }
                 self.checkGuardHealth()
                 self.retryUnavailableGuardIfNeeded()
             }
         }
+        timer.tolerance = 5
         healthTimer = timer
         RunLoop.main.add(timer, forMode: .common)
-        scheduleMaintenance()
     }
 
     private func scheduleMaintenance() {

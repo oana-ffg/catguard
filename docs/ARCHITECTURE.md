@@ -66,9 +66,11 @@ The tap is installed once and switched among inactive, guarded, and bypassed
 policies in memory. macOS destroys the tap when the app exits or crashes, so
 physical input fails open without a watchdog or privileged cleanup process. If
 macOS disables the tap for a timeout or user input, its callback attempts to
-re-enable it and requests a health check. An independent five-second timer
-checks both non-prompting permission preflights, `CFMachPortIsValid`, and
-`CGEvent.tapIsEnabled`, even while a Focus query is suspended. Failed re-enable,
+re-enable it and requests a health check. While guarded or unavailable, an
+independent 30-second timer (5 s tolerance) checks both non-prompting permission
+preflights, `CFMachPortIsValid`, and `CGEvent.tapIsEnabled`, even while a Focus
+query is suspended. It does not run while input is simply active: arming
+rechecks the tap before guarding. Failed re-enable,
 revocation, or invalidation tears down the tap and shows orange. Recovery retries
 every ten seconds without requesting permissions. Restoring permissions allows
 the intended guard policy to resume.
@@ -99,13 +101,9 @@ This configuration must still be exercised during the owner-assisted switchover.
 `UpdateInstallationGate` blocks automatic and requested installation while
 either activation reason exists, even during bypass or an unavailable tap, or
 while Focus state is unknown. The updater retains its installation continuation
-until safe. App termination rechecks the gate to cover a new activation between
-continuation and quit, including Sparkle paths that skip the postpone callback.
-Staging marks the gate before installation. Sparkle aborts can leave a separate
-installer alive, so the termination safeguard remains for the process lifetime,
-even after an update error. If an update is staged, quitting while armed is deferred with a visible Settings
-message; deactivate Focus and clear manual arm first. A forced process exit still
-fails open. Reviewers should verify these boundaries, the PID filter, and the
+until safe. Quitting is never blocked: it is a documented recovery path, and
+logout or restart must not be vetoed. A staged update quit this way is installed
+by Sparkle without relaunching, so the guard simply ends, as on any quit. Reviewers should verify these boundaries, the PID filter, and the
 absence of persistence or transmission of input contents on every release.
 
 On first launch under the new bundle ID, app-owned preferences are copied once

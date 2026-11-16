@@ -37,11 +37,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        if coordinator.updateGate.shouldDeferTermination {
-            coordinator.reportUpdateIssue("An update is waiting. Disable the Focus and bypass any manual arm before quitting, so CatGuard can install safely.")
-            showSettings()
-            return .terminateCancel
-        }
         guard !isFinishingTermination else { return .terminateNow }
         isFinishingTermination = true
         Task {

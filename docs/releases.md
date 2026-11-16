@@ -101,9 +101,6 @@ process untouched.
 Updates automatically download in the background but installation/relaunch waits
 until both Focus protection and manual arm are off and Focus state is known.
 Bypass and permission failure preserve protection intent and keep updates waiting.
-A staged update also defers quitting while armed, with an explanation in Settings;
-disable Focus and bypass manual arm first. The quit safeguard remains for that
-process lifetime after staging, including update errors, because an aborted
-Sparkle driver is not proof that its separate installer stopped. Force-quit/process failure always
-restores physical input. Changing bundle/signing identity later requires another
+Quitting is never blocked. A staged update is then installed on quit without
+relaunching. Force-quit/process failure always restores physical input. Changing bundle/signing identity later requires another
 explicit migration; do not silently rotate the updater key.

@@ -37,14 +37,6 @@ final class UpdateController: NSObject, @preconcurrency SPUUpdaterDelegate {
         return true
     }
 
-    func updater(_ updater: SPUUpdater, didExtractUpdate item: SUAppcastItem) {
-        gate.markInstallationPending()
-    }
-
-    func updater(_ updater: SPUUpdater, willInstallUpdate item: SUAppcastItem) {
-        gate.markInstallationPending()
-    }
-
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
         let updateError = error as NSError
         // Sparkle reports these normal outcomes through the same abort callback.

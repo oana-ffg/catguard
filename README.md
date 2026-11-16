@@ -53,8 +53,9 @@ Computer Use events alone.
   menu command—so an unexpected release is visible rather than mysterious.
 - On Focus end, reports blocked keyboard key-downs and pointer clicks separately,
   with each bypass's local date and time when nonzero. Movement is not counted.
-- Checks permissions, Mach-port validity, and event-tap enablement every five
-  seconds. A failed tap shows orange and is retried without permission prompts.
+- While guarded, checks permissions, Mach-port validity, and event-tap
+  enablement every 30 seconds, and immediately when macOS disables the tap. A
+  failed tap shows orange and is retried without permission prompts.
 - Fails open: exiting or crashing destroys the event tap and restores input.
 
 The fresh-install rescue phrase is `catguard`. It uses physical ANSI/QWERTY
