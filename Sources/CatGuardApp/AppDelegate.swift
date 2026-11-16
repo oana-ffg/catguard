@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let coordinator = GuardCoordinator()
 
+    private var updater: UpdateController?
     private var statusItemController: StatusItemController?
     private var settingsWindowController: NSWindowController?
     private var aboutWindowController: NSWindowController?
@@ -14,22 +15,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
+        let updater = UpdateController(gate: coordinator.updateGate)
+        self.updater = updater
+        updater.onError = { [weak self] message in self?.coordinator.reportUpdateIssue(message) }
+        coordinator.onUpdateSafetyChanged = { [weak updater] in updater?.protectionChanged() }
         statusItemController = StatusItemController(
             coordinator: coordinator,
             showSettings: { [weak self] in self?.showSettings() },
-            showAbout: { [weak self] in self?.showAbout() }
+            showAbout: { [weak self] in self?.showAbout() },
+            checkForUpdates: { [weak updater] in updater?.checkForUpdates() }
         )
 
         let isFirstLaunch = !UserDefaults.standard.bool(forKey: Self.didShowFirstLaunchSettingsKey)
-        if isFirstLaunch {
+        if isFirstLaunch || coordinator.rescuePhraseIssue != nil {
             UserDefaults.standard.set(true, forKey: Self.didShowFirstLaunchSettingsKey)
             showSettings()
         }
 
         coordinator.start(requestNotificationAuthorization: isFirstLaunch)
+        updater.start()
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        if coordinator.updateGate.shouldDeferTermination {
+            coordinator.reportUpdateIssue("An update is waiting. Disable the Focus and bypass any manual arm before quitting, so CatGuard can install safely.")
+            showSettings()
+            return .terminateCancel
+        }
         guard !isFinishingTermination else { return .terminateNow }
         isFinishingTermination = true
         Task {
@@ -56,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             aboutWindowController = makeWindowController(
                 title: "About CatGuard",
                 width: 480,
-                height: 390,
+                height: 430,
                 rootView: AboutView()
             )
         }

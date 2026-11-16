@@ -10,8 +10,13 @@ CatGuard. Use the macOS lock screen for protection against people.
 
 Input Monitoring and Accessibility are powerful, system-wide permissions. A
 malicious build could observe keystrokes across applications or interfere with
-input. CatGuard therefore publishes no prebuilt binary and recommends inspecting
-and building the source under an identity controlled by the user. The app does
+input. CatGuard recommends inspecting and building the source under an identity
+controlled by the user. Public release artifacts use Developer ID signing and
+Apple notarization. A signature identifies the publisher; neither a signature
+nor notarization proves that input-capable software is safe. Sparkle verifies
+Ed25519 update signatures against the public key compiled into the app; Apple
+and updater private keys remain in the maintainer's local encrypted store and
+are never supplied to CI. The app does
 not install a privileged helper, daemon, kernel extension, or system extension.
 
 Reports about persisted or transmitted input, an incorrect physical-event

@@ -19,9 +19,13 @@ jobs:
       - name: Test Swift package
         run: swift test
 
+      - name: Check release tooling
+        run: python3 -B -m unittest discover -s scripts/tests -v
+
       - name: Build app without signing
         run: >-
           xcodebuild -quiet
+          -packageAuthorizationProvider netrc
           -project CatGuard.xcodeproj
           -scheme CatGuard
           -configuration Debug

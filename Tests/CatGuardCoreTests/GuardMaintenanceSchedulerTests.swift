@@ -30,15 +30,15 @@ struct GuardMaintenanceSchedulerTests {
             }
         }
         scheduleNext()
-        for _ in 0..<960 {
+        for _ in 0..<96 {
             let delay = await clock.waitForSleep()
-            #expect(delay == 30)
+            #expect(delay == 300)
             clock.advance()
         }
-        await clock.waitForWakeCount { wakeCount == 960 }
-        #expect(queries == 961)  // Initial query plus the timed reconciliations.
+        await clock.waitForWakeCount { wakeCount == 96 }
+        #expect(queries == 97)  // Initial query plus the timed reconciliations.
         #expect(clock.time == 28_800)
-        #expect(clock.sleepCount == 960)
+        #expect(clock.sleepCount == 96)
         scheduler.cancel()
         monitor.stop()
     }

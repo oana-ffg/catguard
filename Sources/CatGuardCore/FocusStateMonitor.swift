@@ -21,7 +21,7 @@ final class FocusStateMonitor {
     private var lastRefresh: TimeInterval?
 
     init(
-        reconciliationInterval: TimeInterval = 30,
+        reconciliationInterval: TimeInterval = 300,
         retryInterval: TimeInterval = 2,
         now: @escaping () -> TimeInterval = { ProcessInfo.processInfo.systemUptime },
         query: @escaping @MainActor () async throws -> Bool,
@@ -62,7 +62,10 @@ final class FocusStateMonitor {
     /// No timer is needed while stopped or while a query owns the next update.
     var nextRefreshDelay: TimeInterval? {
         guard isRunning, activeQueryID == nil else { return nil }
-        let interval = failurePolicy.consecutiveFailures == 0 ? reconciliationInterval : retryInterval
+        // Preserve the prompt second attempt, then back off to the normal cadence.
+        let failures = failurePolicy.consecutiveFailures
+        let interval = failures == 0 ? reconciliationInterval
+            : min(reconciliationInterval, retryInterval * pow(2, Double(min(failures - 1, 16))))
         guard let lastRefresh else { return 0 }
         return max(0, interval - (now() - lastRefresh))
     }

@@ -4,22 +4,7 @@ import Foundation
 /// Suppresses physical keyboard actions and actionable pointer events while
 /// allowing synthetic events from trusted Computer Use automation to pass.
 final class PhysicalInputGuard: @unchecked Sendable {
-    enum StartError: LocalizedError {
-        case inputMonitoringDenied
-        case accessibilityDenied
-        case eventTapCreationFailed
-
-        var errorDescription: String? {
-            switch self {
-            case .inputMonitoringDenied:
-                "Input Monitoring permission was not granted."
-            case .accessibilityDenied:
-                "Accessibility permission was not granted."
-            case .eventTapCreationFailed:
-                "macOS would not create the physical-input event tap."
-            }
-        }
-    }
+    typealias StartError = InputProtectionError
 
     struct Callbacks: Sendable {
         let onBlockedKeyboardInput: @Sendable () -> Void
@@ -27,6 +12,7 @@ final class PhysicalInputGuard: @unchecked Sendable {
         let onCircle: @Sendable () -> Void
         let onRescuePhrase: @Sendable () -> Void
         let onBypassActivity: @Sendable () -> Void
+        let onHealthChanged: @Sendable () -> Void
     }
 
     private struct State {
@@ -60,12 +46,15 @@ final class PhysicalInputGuard: @unchecked Sendable {
         self.callbacks = callbacks
     }
 
-    func start() throws {
-        guard eventTap == nil else { return }
-        guard CGPreflightListenEventAccess() || CGRequestListenEventAccess() else {
+    func start(requestPermissions: Bool = true) throws {
+        if eventTap != nil {
+            do { try checkHealth(); return }
+            catch { stop() } // Recreate a failed tap; subsequent errors reach the coordinator.
+        }
+        guard CGPreflightListenEventAccess() || (requestPermissions && CGRequestListenEventAccess()) else {
             throw StartError.inputMonitoringDenied
         }
-        guard CGPreflightPostEventAccess() || CGRequestPostEventAccess() else {
+        guard CGPreflightPostEventAccess() || (requestPermissions && CGRequestPostEventAccess()) else {
             throw StartError.accessibilityDenied
         }
 
@@ -100,6 +89,28 @@ final class PhysicalInputGuard: @unchecked Sendable {
         runLoopSource = source
         CFRunLoopAddSource(CFRunLoopGetMain(), source, .commonModes)
         CGEvent.tapEnable(tap: tap, enable: true)
+        try checkHealth()
+    }
+
+    /// Non-prompting probes; called every five seconds and after a disabled callback.
+    func checkHealth() throws {
+        try EventTapHealthCheck.validate(
+            listenAccess: CGPreflightListenEventAccess(),
+            postAccess: CGPreflightPostEventAccess(),
+            portValid: eventTap.map { CFMachPortIsValid($0) } ?? false,
+            isEnabled: { self.eventTap.map { CGEvent.tapIsEnabled(tap: $0) } ?? false },
+            enable: { if let tap = self.eventTap { CGEvent.tapEnable(tap: tap, enable: true) } }
+        )
+    }
+
+    func stop() {
+        setInactive()
+        if let eventTap {
+            CFMachPortInvalidate(eventTap)
+        }
+        if let runLoopSource { CFRunLoopRemoveSource(CFRunLoopGetMain(), runLoopSource, .commonModes) }
+        runLoopSource = nil
+        eventTap = nil
     }
 
     func setGuarded(circleEnabled: Bool, rescuePhrase: RescuePhrase) {
@@ -141,6 +152,7 @@ final class PhysicalInputGuard: @unchecked Sendable {
             if let eventTap {
                 CGEvent.tapEnable(tap: eventTap, enable: true)
             }
+            callbacks.onHealthChanged()
             return Unmanaged.passUnretained(event)
         }
 

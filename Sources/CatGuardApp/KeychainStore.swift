@@ -19,6 +19,7 @@ struct KeychainStore {
     private let service: String
     private let account: String
 
+    // Keep this service across the bundle-ID change: preserve the original item and ACL.
     init(service: String = "com.oanaffg.CatGuard", account: String = "rescue-phrase") {
         self.service = service
         self.account = account

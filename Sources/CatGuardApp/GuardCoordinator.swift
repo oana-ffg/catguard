@@ -24,6 +24,7 @@ final class GuardCoordinator: ObservableObject {
         }
     }
     @Published var rescuePhraseDraft = RescuePhrase.default.value
+    @Published private(set) var rescuePhraseIssue: String?
     @Published private(set) var settingsMessage: String?
     @Published private(set) var focusMonitoringIssue: String?
     @Published private(set) var focusMonitoringUnavailable = false
@@ -57,13 +58,16 @@ final class GuardCoordinator: ObservableObject {
             },
             onBypassActivity: { [weak self] in
                 Task { @MainActor in self?.recordBypassActivity() }
+            },
+            onHealthChanged: { [weak self] in
+                Task { @MainActor in self?.checkGuardHealth() }
             }
         )
     )
     private var session = GuardSessionTracker()
     private var bypassIdleTimer = BypassIdleTimer()
     private var savedRescuePhrase = RescuePhrase.default
-    private let focusLogger = Logger(subsystem: "com.oanaffg.CatGuard", category: "Focus")
+    private let focusLogger = Logger(subsystem: "com.firefungames.catguard", category: "Focus")
     private lazy var focusMonitor = FocusStateMonitor(
         query: { try await FocusGuardIntent.current.isEnabled },
         onUpdate: { [weak self] update in self?.handleFocusUpdate(update) }
@@ -72,40 +76,39 @@ final class GuardCoordinator: ObservableObject {
     private var isRunning = false
     private var focusChangeObserver: NotificationObservation?
     private var wakeObserver: NotificationObservation?
+    let updateGate = UpdateInstallationGate()
+    var onUpdateSafetyChanged: (() -> Void)?
+    private var healthTimer: Timer?
     private var lastUnavailableRetry = Date.distantPast
 
     init(defaults: UserDefaults = .standard, keychain: KeychainStore = KeychainStore()) {
         self.defaults = defaults
         self.keychain = keychain
+        LegacySettingsMigration.migrate(defaults: defaults, legacy: defaults.persistentDomain(forName: LegacySettingsMigration.legacyDomain) ?? [:])
         if defaults.object(forKey: Keys.circleEnabled) == nil {
             circleEnabled = true
         } else {
             circleEnabled = defaults.bool(forKey: Keys.circleEnabled)
         }
 
+        loadRescuePhrase()
+    }
+
+    func loadRescuePhrase() {
         do {
-            if let storedPhrase = try keychain.read() {
-                if let validatedPhrase = RescuePhrase(storedPhrase) {
-                    savedRescuePhrase = validatedPhrase
-                    rescuePhraseDraft = validatedPhrase.value
-                    if storedPhrase != validatedPhrase.value {
-                        try keychain.write(validatedPhrase.value)
-                    }
-                } else {
-                    savedRescuePhrase = .default
-                    rescuePhraseDraft = savedRescuePhrase.value
-                    try keychain.write(savedRescuePhrase.value)
-                    settingsMessage =
-                        "The invalid rescue phrase in Keychain was replaced with “\(savedRescuePhrase.value)”."
-                }
-            } else {
-                try keychain.write(savedRescuePhrase.value)
+            savedRescuePhrase = try RescuePhraseLoader.load(read: keychain.read, write: keychain.write)
+            rescuePhraseDraft = savedRescuePhrase.value
+            rescuePhraseIssue = nil
+            if isRunning {
+                if activationReasons.shouldGuard { arm() }
+                else { protectionState = .inputActive }
             }
         } catch {
-            savedRescuePhrase = .default
-            rescuePhraseDraft = savedRescuePhrase.value
-            settingsMessage =
-                "The rescue phrase could not be read from or updated in Keychain. Using “\(savedRescuePhrase.value)” for this launch. \(error.localizedDescription)"
+            rescuePhraseDraft = ""
+            let issue = "Protection is unavailable until the saved rescue phrase can be read or explicitly replaced. Retry Keychain access in Settings. \(error.localizedDescription)"
+            rescuePhraseIssue = issue
+            inputGuard.setInactive()
+            protectionState = .unavailable(issue)
         }
     }
 
@@ -117,6 +120,7 @@ final class GuardCoordinator: ObservableObject {
         observeFocusChanges()
 
         do {
+            guard rescuePhraseIssue == nil else { throw RescuePhraseLoader.LoadError.invalidPhrase }
             try inputGuard.start()
         } catch {
             protectionState = .unavailable(error.localizedDescription)
@@ -126,6 +130,15 @@ final class GuardCoordinator: ObservableObject {
             await self?.prepareNotifications(requestAuthorizationIfNeeded: requestNotificationAuthorization)
         }
 
+        let timer = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self, self.isRunning else { return }
+                self.checkGuardHealth()
+                self.retryUnavailableGuardIfNeeded()
+            }
+        }
+        healthTimer = timer
+        RunLoop.main.add(timer, forMode: .common)
         scheduleMaintenance()
     }
 
@@ -152,11 +165,15 @@ final class GuardCoordinator: ObservableObject {
 
     func stop() async {
         isRunning = false
+        healthTimer?.invalidate()
+        healthTimer = nil
         maintenance.cancel()
         focusMonitor.stop()
         stopObservingFocusChanges()
-        inputGuard.setInactive()
+        inputGuard.stop()
     }
+
+    func reportUpdateIssue(_ message: String) { settingsMessage = message }
 
     func setLaunchAtLogin(_ enabled: Bool) {
         do {
@@ -188,6 +205,7 @@ final class GuardCoordinator: ObservableObject {
         do {
             try keychain.write(phrase.value)
             savedRescuePhrase = phrase
+            rescuePhraseIssue = nil
             rescuePhraseDraft = phrase.value
             if protectionState == .guarded {
                 inputGuard.setGuarded(
@@ -196,12 +214,14 @@ final class GuardCoordinator: ObservableObject {
                 )
             }
             settingsMessage = "Rescue phrase saved in Keychain."
+            if activationReasons.shouldGuard { arm() }
         } catch {
             settingsMessage = error.localizedDescription
         }
     }
 
     func beginBypass(trigger: BypassTrigger = .menu) {
+        defer { updateSafetyChanged() }
         guard activationReasons.shouldGuard, protectionState == .guarded else { return }
         session.recordBypass(at: Date())
         _ = activationReasons.clearManualArm()
@@ -218,6 +238,7 @@ final class GuardCoordinator: ObservableObject {
     }
 
     func activateManualGuard() {
+        defer { updateSafetyChanged() }
         let transition = activationReasons.latchManualArm()
         settingsMessage = "Manual arm latched until a circle or the rescue phrase bypasses it."
         if transition == .activated {
@@ -235,13 +256,18 @@ final class GuardCoordinator: ObservableObject {
     }
 
     private func handleFocusUpdate(_ update: FocusStateMonitor.Update) {
-        defer { scheduleMaintenance() }
+        defer {
+            updateSafetyChanged()
+            scheduleMaintenance()
+        }
         switch update {
         case .state(let enabled):
+            updateGate.focusStateKnown = true
             focusMonitoringIssue = nil
             focusMonitoringUnavailable = false
             applyFocusState(enabled)
         case .failure(let attempts, let shouldFailOpen, let message):
+            updateGate.focusStateKnown = false
             focusMonitoringUnavailable = shouldFailOpen
             if shouldFailOpen {
                 applyFocusState(false)
@@ -275,6 +301,11 @@ final class GuardCoordinator: ObservableObject {
 
     private func arm() {
         guard activationReasons.shouldGuard else { return }
+        if let rescuePhraseIssue {
+            inputGuard.setInactive()
+            protectionState = .unavailable(rescuePhraseIssue)
+            return
+        }
         do {
             try inputGuard.start()
             inputGuard.setGuarded(
@@ -321,13 +352,13 @@ final class GuardCoordinator: ObservableObject {
     }
 
     private func retryUnavailableGuardIfNeeded() {
-        guard case .unavailable = protectionState else { return }
+        guard case .unavailable = protectionState, rescuePhraseIssue == nil else { return }
         let now = Date()
         guard now.timeIntervalSince(lastUnavailableRetry) >= 10 else { return }
         lastUnavailableRetry = now
 
         do {
-            try inputGuard.start()
+            try inputGuard.start(requestPermissions: false)
             if activationReasons.shouldGuard {
                 inputGuard.setGuarded(
                     circleEnabled: circleEnabled,
@@ -339,6 +370,23 @@ final class GuardCoordinator: ObservableObject {
             }
         } catch {
             protectionState = .unavailable(error.localizedDescription)
+        }
+    }
+
+    private func updateSafetyChanged() {
+        updateGate.protectionRequested = activationReasons.shouldGuard
+        onUpdateSafetyChanged?()
+    }
+
+    private func checkGuardHealth() {
+        guard rescuePhraseIssue == nil else { return }
+        if case .unavailable = protectionState { return }
+        do {
+            try inputGuard.checkHealth()
+        } catch {
+            inputGuard.stop()
+            protectionState = .unavailable(error.localizedDescription)
+            lastUnavailableRetry = Date()
         }
     }
 

@@ -7,16 +7,19 @@ final class StatusItemController: NSObject {
     private let coordinator: GuardCoordinator
     private let showSettings: () -> Void
     private let showAbout: () -> Void
+    private let checkForUpdates: () -> Void
     private var cancellables: Set<AnyCancellable> = []
 
     init(
         coordinator: GuardCoordinator,
         showSettings: @escaping () -> Void,
-        showAbout: @escaping () -> Void
+        showAbout: @escaping () -> Void,
+        checkForUpdates: @escaping () -> Void
     ) {
         self.coordinator = coordinator
         self.showSettings = showSettings
         self.showAbout = showAbout
+        self.checkForUpdates = checkForUpdates
         super.init()
 
         if let button = statusItem.button {
@@ -111,6 +114,7 @@ final class StatusItemController: NSObject {
         menu.addItem(.separator())
 
         menu.addItem(withTitle: "Settings…", action: #selector(openSettings), keyEquivalent: ",")
+        menu.addItem(withTitle: "Check for Updates…", action: #selector(checkUpdates), keyEquivalent: "")
         menu.addItem(withTitle: "About CatGuard", action: #selector(openAbout), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit CatGuard", action: #selector(quit), keyEquivalent: "q")
@@ -138,6 +142,8 @@ final class StatusItemController: NSObject {
     @objc private func openSettings() {
         showSettings()
     }
+
+    @objc private func checkUpdates() { checkForUpdates() }
 
     @objc private func openAbout() {
         showAbout()

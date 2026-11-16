@@ -2,7 +2,7 @@ import AppIntents
 import Foundation
 
 enum FocusGuardIntentNotification {
-    static let didPerform = Notification.Name("com.oanaffg.CatGuard.focus-filter-did-perform")
+    static let didPerform = Notification.Name("com.firefungames.catguard.focus-filter-did-perform")
     static let enabledKey = "isEnabled"
 }
 

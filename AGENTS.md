@@ -2,19 +2,22 @@
 
 ## Git workflow
 
-This is a solo hobby project. Pull requests are unnecessary: commit and push
-changes directly to `main` unless the user explicitly requests a branch or pull
-request.
+This is a solo hobby project. Commit and push directly to main unless the user
+requests a branch or review. Explicit release-preparation boundaries take
+precedence: a local implementation branch must not be pushed or published.
 
-## Deploy local app changes
+## Release and installation
 
-Any workflow that commits and pushes local CatGuard changes is incomplete until
-the updated app is also installed and running locally:
+Read `docs/releases.md`. Generate the Xcode project, run Swift package tests and
+an unsigned app build, then use `scripts/release.py` on the trusted publisher Mac.
+The script requires a clean main commit for real releases; `--test` permits a
+clean review branch and produces local test assets only. It signs with Developer
+ID, enables hardened runtime, notarizes and staples the app and DMG, verifies the
+exact Sparkle archive, and signs the appcast enclosure. It never publishes,
+installs, launches, or changes user privacy/Focus/login settings. Keep Team ID
+supplied at build time and all private keys out of source and CI.
 
-1. Build a fresh signed Release app, supplying the maintainer's Development Team
-   only at build time. Never commit the Team ID.
-2. Verify the built app's code signature.
-3. Quit the currently running CatGuard before replacing it.
-4. Replace `/Applications/CatGuard.app` with the newly built Release app.
-5. Relaunch `/Applications/CatGuard.app` and verify that the installed build is
-   running successfully.
+Publish only after owner review/approval. Install or replace the live app only
+when explicitly authorized, following the switchover in `docs/releases.md`.
+Never launch a second guard in the user's session for release verification.
+GUI/input/Focus tests require an agreed safe window and physical recovery path.

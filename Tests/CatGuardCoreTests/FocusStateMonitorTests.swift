@@ -22,14 +22,14 @@ struct FocusStateMonitorTests {
         harness.monitor.start()
         await harness.monitor.refreshIfNeeded()
         #expect(harness.queryCount == 1)
-        harness.time = 29
+        harness.time = 299
         await harness.monitor.refreshIfNeeded()
         #expect(harness.queryCount == 1)
         harness.monitor.receive(true)
-        harness.time = 58
+        harness.time = 598
         await harness.monitor.refreshIfNeeded()
         #expect(harness.queryCount == 1)
-        harness.time = 59
+        harness.time = 599
         await harness.monitor.refreshIfNeeded()
         #expect(harness.queryCount == 2)
         #expect(harness.updates == [.state(false), .state(true), .state(false)])
@@ -188,16 +188,16 @@ func focusRefreshDeadlines() async {
     harness.monitor.start()
     #expect(harness.monitor.nextRefreshDelay == 0)
     await harness.monitor.refreshIfNeeded()
-    #expect(harness.monitor.nextRefreshDelay == 30)
-    harness.time = 29
+    #expect(harness.monitor.nextRefreshDelay == 300)
+    harness.time = 299
     #expect(harness.monitor.nextRefreshDelay == 1)
     harness.monitor.receive(true)
-    #expect(harness.monitor.nextRefreshDelay == 30)
-    harness.time = 60
+    #expect(harness.monitor.nextRefreshDelay == 300)
+    harness.time = 600
     harness.result = .failure(FocusTestError.unavailable)
     await harness.monitor.refreshIfNeeded()
     #expect(harness.monitor.nextRefreshDelay == 2)
-    harness.time = 61
+    harness.time = 601
     #expect(harness.monitor.nextRefreshDelay == 1)
     harness.monitor.stop()
     #expect(harness.monitor.nextRefreshDelay == nil)

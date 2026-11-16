@@ -51,6 +51,13 @@ struct SettingsView: View {
                 }
             }
 
+            if let issue = coordinator.rescuePhraseIssue {
+                Section("Rescue phrase access required") {
+                    Text(issue).foregroundStyle(.orange)
+                    Button("Retry Keychain access") { coordinator.loadRescuePhrase() }
+                }
+            }
+
             Section("Fallback rescue phrase") {
                 TextField("Rescue phrase", text: $coordinator.rescuePhraseDraft)
                 HStack {

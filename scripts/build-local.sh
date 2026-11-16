@@ -12,6 +12,7 @@ xcodebuild_path="$(xcrun --find xcodebuild)"
 derived_data_path="${repository_root}/.build/xcode-local"
 
 "${xcodebuild_path}" \
+    -packageAuthorizationProvider netrc \
     -project "${repository_root}/CatGuard.xcodeproj" \
     -scheme CatGuard \
     -configuration Release \
@@ -25,4 +26,4 @@ derived_data_path="${repository_root}/.build/xcode-local"
 
 echo "Built ${derived_data_path}/Build/Products/Release/CatGuard.app"
 echo "Note: self-signed builds support manual arm, but macOS Focus Filters require an Apple Development Team ID."
-echo "Use scripts/build-development.sh after selecting your Personal Team in Xcode for Focus integration."
+echo "Use scripts/build-development.sh after selecting your Apple Developer team in Xcode for Focus integration."

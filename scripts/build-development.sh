@@ -9,11 +9,12 @@ derived_data_path="${repository_root}/.build/xcode-team"
 app_path="${derived_data_path}/Build/Products/Release/CatGuard.app"
 
 if [[ -z "${DEVELOPMENT_TEAM:-}" ]]; then
-    echo "Set DEVELOPMENT_TEAM to your Personal Team ID for this build." >&2
+    echo "Set DEVELOPMENT_TEAM to your Apple Development Team ID for this build." >&2
     exit 1
 fi
 
 "${xcodebuild_path}" \
+    -packageAuthorizationProvider netrc \
     -project "${repository_root}/CatGuard.xcodeproj" \
     -scheme CatGuard \
     -configuration Release \

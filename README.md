@@ -34,8 +34,9 @@ Computer Use events alone.
 
 - Follows a macOS Focus Filter while running in the background.
 - Applies Focus filter callbacks immediately, checks again on startup and wake,
-  and reconciles the state every 30 seconds if a callback is missed. Failed
-  checks retry every two seconds and retain the existing fail-open policy.
+  and reconciles the state every five minutes if a callback is missed. Failed
+  checks retry after 2 seconds, then back off (4, 8, 16… up to 300 seconds)
+  and retain the existing fail-open policy.
 - Shows a green paw when input is active, a red lock when guarded, a green open
   lock while bypassed, and an orange warning when protection is unavailable.
 - Suppresses physical keyboard key-down, key-up, and modifier events.
@@ -52,6 +53,8 @@ Computer Use events alone.
   menu command—so an unexpected release is visible rather than mysterious.
 - On Focus end, reports blocked keyboard key-downs and pointer clicks separately,
   with each bypass's local date and time when nonzero. Movement is not counted.
+- Checks permissions, Mach-port validity, and event-tap enablement every five
+  seconds. A failed tap shows orange and is retried without permission prompts.
 - Fails open: exiting or crashing destroys the event tap and restores input.
 
 The fresh-install rescue phrase is `catguard`. It uses physical ANSI/QWERTY
@@ -68,11 +71,22 @@ have been exercised on a real external Apple keyboard and Magic Trackpad on
 macOS 26. The earlier low-level HID approach and the reason it was rejected are
 recorded in [the experiment log](docs/HID-EXPERIMENTS.md).
 
-**This repository does not publish a prebuilt app.** The maintainer's Apple
-Personal Team cannot issue the Developer ID certificate required for a properly
-signed and notarized public release. More importantly, a signature identifies a
-publisher; it does not prove that globally input-capable software is safe.
-Building an inspected copy remains the recommended path.
+The public-release workflow produces a Developer ID signed, notarized app for
+Apple Silicon and Intel Macs. Release assets belong on the
+[GitHub releases page](https://github.com/oana-ffg/catguard/releases). A signature
+identifies a publisher; it does not prove that globally input-capable software
+is safe. Building an inspected copy remains the recommended path.
+
+Version 0.2.0 uses `com.firefungames.catguard`. Existing installations need the
+[one-time switchover](docs/releases.md#existing-installation-switchover). The old
+Keychain rescue phrase is retained; denied access blocks protection visibly
+until access is retried or you explicitly save a replacement.
+
+Sparkle 2 checks, downloads, and installs signed updates automatically. Updates
+wait until both Focus protection and the manual latch are inactive, including
+when protection is temporarily bypassed or unavailable. The menu also offers
+**Check for Updates…**. Update requests contact GitHub; input events and rescue
+phrases never leave the app. Publisher/support: catguard@firefungames.com.
 
 ## Local setup
 

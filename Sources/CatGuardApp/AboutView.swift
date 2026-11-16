@@ -32,11 +32,13 @@ struct AboutView: View {
                 destination: URL(string: "https://github.com/oana-ffg/catguard")!
             )
 
+            Link("catguard@firefungames.com", destination: URL(string: "mailto:catguard@firefungames.com")!)
+
             Text("Copyright © 2026 Oana Alina Goge · MIT License")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .padding(32)
-        .frame(width: 460, height: 370)
+        .frame(width: 460, height: 410)
     }
 }

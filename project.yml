@@ -1,7 +1,7 @@
 name: CatGuard
 
 options:
-  bundleIdPrefix: com.oanaffg
+  bundleIdPrefix: com.firefungames
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -17,6 +17,11 @@ settings:
     GENERATE_INFOPLIST_FILE: false
     MACOSX_DEPLOYMENT_TARGET: "14.0"
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    exactVersion: 2.8.1
+
 targets:
   CatGuard:
     type: application
@@ -30,14 +35,16 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.oanaffg.CatGuard
+        PRODUCT_BUNDLE_IDENTIFIER: com.firefungames.catguard
         PRODUCT_NAME: CatGuard
+        ENABLE_HARDENED_RUNTIME: true
         INFOPLIST_FILE: Config/CatGuard-Info.plist
         ENABLE_APP_INTENTS_METADATA_EXTRACTION: true
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     entitlements:
       path: Config/CatGuard.entitlements
     dependencies:
+      - package: Sparkle
       - sdk: AppKit.framework
       - sdk: AppIntents.framework
       - sdk: CoreGraphics.framework

@@ -42,13 +42,14 @@ process-local notification on the main actor. The coordinator applies it before
 and coordinator run in the same process.
 
 A serialized Focus monitor queries the current filter on startup and wake, and
-every 30 seconds as reconciliation for a missed callback. A callback resets that
-interval. Query failures retry after two seconds; the first preserves the last
+every 300 seconds as reconciliation for a missed callback. A callback resets that
+interval. Query failures retry after 2 seconds, then exponentially back off
+through 4, 8, 16, 32, 64, 128, and 256 seconds to a 300-second cap. The first preserves the last
 known state and the second clears Focus activation while preserving a manual
 arm. A newer callback supersedes any in-flight query result or failure. Observer
 registrations are removed on stop or release, and pending queries cannot update
 a stopped monitor. If macOS misses a callback, the fallback observes a Focus
-change on the next check, about 30 seconds later at most plus the query duration.
+change on the next check, about 300 seconds later at most plus the query duration.
 
 The app has four visible states:
 
@@ -64,7 +65,13 @@ The app has four visible states:
 The tap is installed once and switched among inactive, guarded, and bypassed
 policies in memory. macOS destroys the tap when the app exits or crashes, so
 physical input fails open without a watchdog or privileged cleanup process. If
-macOS disables the tap for a timeout, its callback immediately re-enables it.
+macOS disables the tap for a timeout or user input, its callback attempts to
+re-enable it and requests a health check. An independent five-second timer
+checks both non-prompting permission preflights, `CFMachPortIsValid`, and
+`CGEvent.tapIsEnabled`, even while a Focus query is suspended. Failed re-enable,
+revocation, or invalidation tears down the tap and shows orange. Recovery retries
+every ten seconds without requesting permissions. Restoring permissions allows
+the intended guard policy to resume.
 
 Circle and rescue-phrase callbacks are latched so one gesture cannot issue
 duplicate bypasses. The rescue phrase is matched from physical ANSI positions,
@@ -80,6 +87,30 @@ administrator/root trust boundary, but does not make blind binary installation
 appropriate. The recommended distribution model remains source inspection and
 a build signed by the person who will run it.
 
-The repository has no networking dependency in the app target. Reviewers should
-still verify that invariant, the PID filter, and the absence of persistence for
-input contents on every release.
+Sparkle 2.8.1 is pinned through SwiftPM and contacts the GitHub release feed
+for updates. Its installer/downloader XPC services are disabled and removed
+from release builds because CatGuard is not sandboxed. The local release script
+signs the remaining nested helpers and framework inside-out using the same
+Developer ID, so hardened library validation needs no exception. The app
+entitlements remain empty: Core Graphics input access uses macOS privacy
+consent, and the in-process Focus App Intent declares no additional entitlement.
+This configuration must still be exercised during the owner-assisted switchover.
+
+`UpdateInstallationGate` blocks automatic and requested installation while
+either activation reason exists, even during bypass or an unavailable tap, or
+while Focus state is unknown. The updater retains its installation continuation
+until safe. App termination rechecks the gate to cover a new activation between
+continuation and quit, including Sparkle paths that skip the postpone callback.
+If an update is staged, quitting while armed is deferred with a visible Settings
+message; deactivate Focus and clear manual arm first. A forced process exit still
+fails open. Reviewers should verify these boundaries, the PID filter, and the
+absence of persistence or transmission of input contents on every release.
+
+On first launch under the new bundle ID, app-owned preferences are copied once
+from the old defaults domain without overwriting new preferences. The rescue
+phrase stays in the original `com.oanaffg.CatGuard` Keychain service and account
+`rescue-phrase`, preserving the item and its access control. Read/validation
+errors preserve the item, open Settings, and block arming visibly. Only a missing
+item on a fresh installation creates the default; saving a replacement is an
+explicit user action. Login registration uses the new app's `SMAppService.mainApp`;
+old Focus, privacy, and login registrations require the documented handover.
