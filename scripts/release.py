@@ -63,7 +63,7 @@ def verify_app(app, team):
             raise ValueError(f"Unexpected release entitlements: {path.name}")
     if (framework / "Versions/B/XPCServices").exists():
         raise ValueError("Non-sandboxed release must not contain unused Sparkle XPC services")
-    result = subprocess.run(["spctl", "-a", "-vv", "-t", "exec", str(app)], capture_output=True)
+    result = subprocess.run(["/usr/sbin/spctl", "-a", "-vv", "-t", "exec", str(app)], capture_output=True)
     print(result.stderr.decode().strip(), flush=True)
     if result.returncode:
         raise ValueError("Gatekeeper rejected the app")
